@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: truconf-proxydb
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/truconf_proxydb}
+    username: ${SPRING_DATASOURCE_USERNAME:truconf_proxydb}
+    password: ${SPRING_DATASOURCE_PASSWORD:change-me}
+  flyway:
+    enabled: ${SPRING_FLYWAY_ENABLED:true}
+
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
+truconf:
+  http-base-url: ${TRUCONF_HTTP_BASE_URL:https://trueconf.example.local}
+  ws-url: ${TRUCONF_WS_URL:wss://trueconf.example.local/websocket/chat_bot/}
+  username: ${TRUCONF_USERNAME:bot-user}
+  password: ${TRUCONF_PASSWORD:change-me}
+  proxy-api-key: ${TRUCONF_PROXY_API_KEY:change-me}
+  file-storage-dir: ${TRUCONF_FILE_STORAGE_DIR:/var/lib/truconf-proxydb/files}
+  dispatcher:
+    batch-size: ${TRUCONF_DISPATCHER_BATCH_SIZE:50}
+    poll-interval: ${TRUCONF_DISPATCHER_POLL_INTERVAL:5s}
+    lock-timeout: ${TRUCONF_DISPATCHER_LOCK_TIMEOUT:2m}
+    worker-threads: ${TRUCONF_DISPATCHER_WORKER_THREADS:4}
+  retry:
+    max-attempts: ${TRUCONF_RETRY_MAX_ATTEMPTS:10}
+    initial-delay: ${TRUCONF_RETRY_INITIAL_DELAY:5s}
+    max-delay: ${TRUCONF_RETRY_MAX_DELAY:5m}
+    multiplier: ${TRUCONF_RETRY_MULTIPLIER:2.0}
+  websocket:
+    request-timeout: ${TRUCONF_WEBSOCKET_REQUEST_TIMEOUT:30s}
+    connect-timeout: ${TRUCONF_WEBSOCKET_CONNECT_TIMEOUT:10s}
+    reconnect-delay: ${TRUCONF_WEBSOCKET_RECONNECT_DELAY:5s}
