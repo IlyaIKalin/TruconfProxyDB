@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-truconf_proxydb}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-15432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:

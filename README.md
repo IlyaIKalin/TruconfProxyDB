@@ -45,7 +45,7 @@ curl -i http://localhost:8080/actuator/health/readiness
 Для direct insert и отладки подключитесь к базе:
 
 ```bash
-psql "postgresql://truconf_proxydb:change-me@localhost:5432/truconf_proxydb"
+psql "postgresql://truconf_proxydb:change-me@localhost:15432/truconf_proxydb"
 ```
 
 Остановите локальное окружение:
@@ -68,6 +68,7 @@ TrueConf, OAuth-токены и пароли к базе данных.
 | `POSTGRES_DB` | `truconf_proxydb` | Имя базы данных PostgreSQL в Compose. |
 | `POSTGRES_USER` | `truconf_proxydb` | Пользователь PostgreSQL в Compose. |
 | `POSTGRES_PASSWORD` | `change-me` | Пароль PostgreSQL в Compose. |
+| `POSTGRES_PORT` | `15432` | Порт PostgreSQL на хосте для direct insert и отладки. |
 | `SERVER_PORT` | `8080` | HTTP-порт внутри контейнера приложения и на хосте. |
 | `SPRING_DATASOURCE_URL` | собирается в `docker-compose.yml` | JDBC URL. |
 | `SPRING_DATASOURCE_USERNAME` | `${POSTGRES_USER}` | Имя пользователя JDBC. |
