@@ -240,3 +240,33 @@
   - `mvn -Dtest=TruconfProxyDbApplicationTests,OutboxApiSecurityTests,OutboxDispatcherTests test` сначала упал из-за выбора конструктора `RetryPolicy`; после `@Autowired` на production-конструкторе прошел: 21 tests, 0 failures/errors.
   - `mvn -Dtest=OutboxDeliveryFakeTrueConfIntegrationTests test` сначала упал из-за `MultipartBodyBuilder`/missing `org.reactivestreams.Publisher`; после перехода на `LinkedMultiValueMap`/`HttpEntity` прошел: 1 test, 0 failures/errors.
   - `mvn test` прошел: 53 tests, 0 failures/errors.
+
+## Этап 9. Hardening и документация эксплуатации
+
+Статус: done
+
+- [x] Добавить `README.md` с env vars и examples.
+- [x] Добавить SQL examples для direct insert.
+- [x] Добавить `Dockerfile` для сборки runtime image сервиса.
+- [x] Добавить `docker-compose.yml` для локального запуска PostgreSQL и сервиса.
+- [x] Добавить `.dockerignore`.
+- [x] Добавить `.env.example` с полным набором локальных переменных без реальных secrets.
+- [x] Описать в `README.md` команды `docker compose --env-file .env up --build`, проверку health endpoint и пример direct insert.
+- [x] Добавить логирование без secrets.
+- [x] Проверить actuator health/readiness.
+- [x] Проверить remote config security note.
+- [x] Прогнать полный `mvn test`.
+- [x] Проверить `docker compose config` и smoke-запуск локальной среды.
+
+Заметки:
+
+- Добавлены эксплуатационные артефакты: `README.md`, `.env.example`, `Dockerfile`, `docker-compose.yml`, `.dockerignore`.
+- `.gitignore` расширен для локальных `.env` файлов, при этом `.env.example` остается отслеживаемым.
+- `README.md` содержит env vars, HTTP API examples, multipart file example, direct insert SQL examples, health/readiness commands, security notes и known limitations.
+- Явные log-сообщения в production коде проверены на отсутствие API key, password, OAuth token и Authorization header. Дополнительный security note о remote config и запрете secret logging добавлен в README.
+- `docker compose --env-file .env.example config` прошел.
+- `docker compose --env-file .env config` проверен через временный `.env`, созданный из `.env.example`; временный файл удален.
+- Smoke compose-запуск выполнен с `SERVER_PORT=18080`, потому что локальный `8080` был занят. App container стал `healthy`, `curl http://localhost:18080/actuator/health` вернул `{"groups":["liveness","readiness"],"status":"UP"}`, `curl http://localhost:18080/actuator/health/readiness` вернул `{"status":"UP"}`.
+- Flyway внутри compose-среды применил migration version `1` успешно (`flyway_schema_history`: `1|t`).
+- После smoke-проверки compose-среда остановлена через `docker compose down -v`.
+- `mvn test` прошел: 53 tests, 0 failures/errors.

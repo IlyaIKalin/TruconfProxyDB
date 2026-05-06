@@ -1,0 +1,71 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-truconf_proxydb}
+      POSTGRES_USER: ${POSTGRES_USER:-truconf_proxydb}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - truconf-proxydb
+
+  app:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: ${SERVER_PORT:-8080}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-truconf_proxydb}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-truconf_proxydb}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      SPRING_FLYWAY_ENABLED: ${SPRING_FLYWAY_ENABLED:-true}
+      SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE: ${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE:-100MB}
+      SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE: ${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE:-110MB}
+      TRUCONF_HTTP_BASE_URL: ${TRUCONF_HTTP_BASE_URL:-https://trueconf.example.local}
+      TRUCONF_WS_URL: ${TRUCONF_WS_URL:-wss://trueconf.example.local/websocket/chat_bot/}
+      TRUCONF_USERNAME: ${TRUCONF_USERNAME:-bot-user}
+      TRUCONF_PASSWORD: ${TRUCONF_PASSWORD:-change-me}
+      TRUCONF_PROXY_API_KEY: ${TRUCONF_PROXY_API_KEY:-change-me}
+      TRUCONF_FILE_STORAGE_DIR: ${TRUCONF_FILE_STORAGE_DIR:-/var/lib/truconf-proxydb/files}
+      TRUCONF_DISPATCHER_ENABLED: ${TRUCONF_DISPATCHER_ENABLED:-true}
+      TRUCONF_DISPATCHER_BATCH_SIZE: ${TRUCONF_DISPATCHER_BATCH_SIZE:-50}
+      TRUCONF_DISPATCHER_POLL_INTERVAL: ${TRUCONF_DISPATCHER_POLL_INTERVAL:-5s}
+      TRUCONF_DISPATCHER_LOCK_TIMEOUT: ${TRUCONF_DISPATCHER_LOCK_TIMEOUT:-2m}
+      TRUCONF_DISPATCHER_WORKER_THREADS: ${TRUCONF_DISPATCHER_WORKER_THREADS:-4}
+      TRUCONF_RETRY_MAX_ATTEMPTS: ${TRUCONF_RETRY_MAX_ATTEMPTS:-10}
+      TRUCONF_RETRY_INITIAL_DELAY: ${TRUCONF_RETRY_INITIAL_DELAY:-5s}
+      TRUCONF_RETRY_MAX_DELAY: ${TRUCONF_RETRY_MAX_DELAY:-5m}
+      TRUCONF_RETRY_MULTIPLIER: ${TRUCONF_RETRY_MULTIPLIER:-2.0}
+      TRUCONF_WEBSOCKET_REQUEST_TIMEOUT: ${TRUCONF_WEBSOCKET_REQUEST_TIMEOUT:-30s}
+      TRUCONF_WEBSOCKET_CONNECT_TIMEOUT: ${TRUCONF_WEBSOCKET_CONNECT_TIMEOUT:-10s}
+      TRUCONF_WEBSOCKET_RECONNECT_DELAY: ${TRUCONF_WEBSOCKET_RECONNECT_DELAY:-5s}
+    ports:
+      - "${SERVER_PORT:-8080}:${SERVER_PORT:-8080}"
+    volumes:
+      - app-files:/var/lib/truconf-proxydb/files
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS \"http://localhost:$${SERVER_PORT:-8080}/actuator/health/readiness\" >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - truconf-proxydb
+
+volumes:
+  postgres-data:
+  app-files:
+
+networks:
+  truconf-proxydb:
+    driver: bridge
