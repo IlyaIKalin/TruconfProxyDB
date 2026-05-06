@@ -16,6 +16,12 @@ HTTP API или прямыми вставками в таблицу outbox в Po
 cp .env.example .env
 ```
 
+Соберите приложение локально:
+
+```bash
+mvn clean package -DskipTests
+```
+
 Запустите PostgreSQL и приложение:
 
 ```bash

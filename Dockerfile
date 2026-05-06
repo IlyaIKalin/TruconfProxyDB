@@ -1,14 +1,5 @@
 # syntax=docker/dockerfile:1
 
-FROM maven:3.9.11-eclipse-temurin-21 AS build
-WORKDIR /workspace
-
-COPY pom.xml .
-RUN mvn -B -DskipTests dependency:go-offline
-
-COPY src ./src
-RUN mvn -B -DskipTests package
-
 FROM eclipse-temurin:21-jre
 
 RUN apt-get update \
@@ -16,11 +7,22 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --system truconf \
     && useradd --system --gid truconf --home-dir /app --shell /usr/sbin/nologin truconf \
-    && mkdir -p /app /var/lib/truconf-proxydb/files \
-    && chown -R truconf:truconf /app /var/lib/truconf-proxydb
+    && mkdir -p /app /var/lib/truconf-proxydb/files /tmp/app-src \
+    && chown -R truconf:truconf /app /var/lib/truconf-proxydb /tmp/app-src
 
 WORKDIR /app
-COPY --from=build /workspace/target/*.jar /app/app.jar
+
+COPY . /tmp/app-src/
+
+RUN set -eux; \
+    jar_path="$(find /tmp/app-src/target -maxdepth 1 -type f -name '*.jar' ! -name '*.jar.original' 2>/dev/null | head -n 1)"; \
+    if [ -z "$jar_path" ]; then \
+        echo "Build artifact not found under target. Run 'mvn clean package -DskipTests' before 'docker compose up --build'." >&2; \
+        exit 1; \
+    fi; \
+    cp "$jar_path" /app/app.jar; \
+    rm -rf /tmp/app-src; \
+    chown truconf:truconf /app/app.jar
 
 USER truconf
 EXPOSE 8080
