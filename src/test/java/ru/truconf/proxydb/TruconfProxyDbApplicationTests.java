@@ -10,7 +10,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(
+    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+    properties = {
+        "spring.flyway.enabled=false",
+        "management.health.db.enabled=false",
+        "truconf.dispatcher.enabled=false"
+    })
 class TruconfProxyDbApplicationTests {
 
   @LocalServerPort

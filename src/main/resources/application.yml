@@ -7,6 +7,10 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD:change-me}
   flyway:
     enabled: ${SPRING_FLYWAY_ENABLED:true}
+  servlet:
+    multipart:
+      max-file-size: ${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE:100MB}
+      max-request-size: ${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE:110MB}
 
 server:
   port: ${SERVER_PORT:8080}
@@ -29,6 +33,7 @@ truconf:
   proxy-api-key: ${TRUCONF_PROXY_API_KEY:change-me}
   file-storage-dir: ${TRUCONF_FILE_STORAGE_DIR:/var/lib/truconf-proxydb/files}
   dispatcher:
+    enabled: ${TRUCONF_DISPATCHER_ENABLED:true}
     batch-size: ${TRUCONF_DISPATCHER_BATCH_SIZE:50}
     poll-interval: ${TRUCONF_DISPATCHER_POLL_INTERVAL:5s}
     lock-timeout: ${TRUCONF_DISPATCHER_LOCK_TIMEOUT:2m}
