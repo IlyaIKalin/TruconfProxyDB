@@ -218,6 +218,7 @@ class TrueConfSessionTests {
         "/tmp/truconf-proxydb-test-files",
         new AppProperties.Dispatcher(10, Duration.ofSeconds(5), Duration.ofMinutes(2), 2),
         new AppProperties.Retry(10, Duration.ofSeconds(1), Duration.ofMinutes(1), 2.0),
+        new AppProperties.RateLimit(10),
         new AppProperties.Websocket(
             requestTimeout,
             Duration.ofSeconds(2),

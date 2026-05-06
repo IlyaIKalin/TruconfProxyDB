@@ -23,7 +23,12 @@ class DefaultTrueConfClientTests {
   void sendFileRunsUploadTaskHttpUploadAndSendFileInOrder() {
     RecordingTransport transport = new RecordingTransport(objectMapper);
     RecordingFileUploader uploader = new RecordingFileUploader(objectMapper);
-    DefaultTrueConfClient client = new DefaultTrueConfClient(transport, commandFactory, uploader);
+    RecordingRateLimiter rateLimiter = new RecordingRateLimiter();
+    DefaultTrueConfClient client = new DefaultTrueConfClient(
+        transport,
+        commandFactory,
+        uploader,
+        rateLimiter);
 
     TrueConfResponse response = client.sendFile(
         "chat-1",
@@ -36,6 +41,7 @@ class DefaultTrueConfClientTests {
     assertThat(response.messageId()).isEqualTo("message-1");
     assertThat(response.fileId()).isEqualTo("file-1");
     assertThat(transport.methods()).containsExactly("uploadFile", "sendFile");
+    assertThat(rateLimiter.acquireCount()).isEqualTo(3);
     assertThat(uploader.uploadTaskId()).isEqualTo("upload-task-1");
     assertThat(uploader.uploadedFileText()).isEqualTo("file body");
     assertThat(uploader.uploadedPreviewText()).isEqualTo("preview body");
@@ -53,6 +59,25 @@ class DefaultTrueConfClientTests {
         "text/plain",
         bytes.length,
         () -> new ByteArrayInputStream(bytes));
+  }
+
+  private static final class RecordingRateLimiter extends TrueConfRateLimiter {
+
+    private int acquireCount;
+
+    private RecordingRateLimiter() {
+      super(1_000_000, System::nanoTime, ignored -> {
+      });
+    }
+
+    @Override
+    public void acquire() {
+      acquireCount++;
+    }
+
+    private int acquireCount() {
+      return acquireCount;
+    }
   }
 
   private static final class RecordingTransport implements TrueConfCommandTransport {

@@ -37,6 +37,7 @@ import ru.truconf.proxydb.truconf.DefaultTrueConfClient;
 import ru.truconf.proxydb.truconf.TrueConfCommandFactory;
 import ru.truconf.proxydb.truconf.TrueConfErrorClassifier;
 import ru.truconf.proxydb.truconf.TrueConfFileUploadClient;
+import ru.truconf.proxydb.truconf.TrueConfRateLimiter;
 import ru.truconf.proxydb.truconf.TrueConfResponseMapper;
 import ru.truconf.proxydb.truconf.TrueConfSession;
 import ru.truconf.proxydb.truconf.TrueConfTokenService;
@@ -118,7 +119,8 @@ class OutboxDeliveryFakeTrueConfIntegrationTests {
     DefaultTrueConfClient trueConfClient = new DefaultTrueConfClient(
         session,
         commandFactory,
-        fileUploadClient);
+        fileUploadClient,
+        new TrueConfRateLimiter(properties));
     OutboxDeliveryExecutor executor = new OutboxDeliveryExecutor(
         repository,
         new P2pChatResolver(repository, trueConfClient),
@@ -188,6 +190,7 @@ class OutboxDeliveryFakeTrueConfIntegrationTests {
         "/tmp/truconf-proxydb-test-files",
         new AppProperties.Dispatcher(10, Duration.ofSeconds(5), Duration.ofMinutes(2), 2),
         new AppProperties.Retry(3, Duration.ofMillis(100), Duration.ofSeconds(5), 2.0),
+        new AppProperties.RateLimit(1_000),
         new AppProperties.Websocket(Duration.ofSeconds(2), Duration.ofSeconds(2), Duration.ofMillis(100)));
   }
 

@@ -43,6 +43,8 @@ truconf:
     initial-delay: ${TRUCONF_RETRY_INITIAL_DELAY:5s}
     max-delay: ${TRUCONF_RETRY_MAX_DELAY:5m}
     multiplier: ${TRUCONF_RETRY_MULTIPLIER:2.0}
+  rate-limit:
+    commands-per-second: ${TRUCONF_RATE_LIMIT_COMMANDS_PER_SECOND:10}
   websocket:
     request-timeout: ${TRUCONF_WEBSOCKET_REQUEST_TIMEOUT:30s}
     connect-timeout: ${TRUCONF_WEBSOCKET_CONNECT_TIMEOUT:10s}

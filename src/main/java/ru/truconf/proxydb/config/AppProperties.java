@@ -19,6 +19,7 @@ public record AppProperties(
     @NotBlank String fileStorageDir,
     @Valid @NotNull Dispatcher dispatcher,
     @Valid @NotNull Retry retry,
+    @Valid @NotNull RateLimit rateLimit,
     @Valid @NotNull Websocket websocket) {
 
   public record Dispatcher(
@@ -33,6 +34,10 @@ public record AppProperties(
       @NotNull Duration initialDelay,
       @NotNull Duration maxDelay,
       @Min(1) double multiplier) {
+  }
+
+  public record RateLimit(
+      @Min(1) int commandsPerSecond) {
   }
 
   public record Websocket(

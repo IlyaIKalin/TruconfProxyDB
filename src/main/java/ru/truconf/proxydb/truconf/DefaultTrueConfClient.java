@@ -1,8 +1,10 @@
 package ru.truconf.proxydb.truconf;
 
 import java.util.Objects;
+import java.util.function.Function;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 
 @Service
 public class DefaultTrueConfClient implements TrueConfClient {
@@ -10,19 +12,22 @@ public class DefaultTrueConfClient implements TrueConfClient {
   private final TrueConfCommandTransport transport;
   private final TrueConfCommandFactory commandFactory;
   private final TrueConfFileUploader fileUploader;
+  private final TrueConfRateLimiter rateLimiter;
 
   public DefaultTrueConfClient(
       TrueConfCommandTransport transport,
       TrueConfCommandFactory commandFactory,
-      TrueConfFileUploader fileUploader) {
+      TrueConfFileUploader fileUploader,
+      TrueConfRateLimiter rateLimiter) {
     this.transport = Objects.requireNonNull(transport, "transport must not be null");
     this.commandFactory = Objects.requireNonNull(commandFactory, "commandFactory must not be null");
     this.fileUploader = Objects.requireNonNull(fileUploader, "fileUploader must not be null");
+    this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter must not be null");
   }
 
   @Override
   public TrueConfResponse createP2PChat(String userId) {
-    return transport.request(id -> commandFactory.createP2PChat(id, userId));
+    return request(id -> commandFactory.createP2PChat(id, userId));
   }
 
   @Override
@@ -31,7 +36,7 @@ public class DefaultTrueConfClient implements TrueConfClient {
       String text,
       String parseMode,
       String replyMessageId) {
-    return transport.request(id -> commandFactory.sendMessage(
+    return request(id -> commandFactory.sendMessage(
         id,
         chatId,
         text,
@@ -47,12 +52,13 @@ public class DefaultTrueConfClient implements TrueConfClient {
       String caption,
       String parseMode,
       String replyMessageId) {
-    TrueConfResponse uploadTask = transport.request(
+    TrueConfResponse uploadTask = request(
         id -> commandFactory.uploadFile(id, file.fileName(), file.sizeBytes()));
     String uploadTaskId = requiredField(uploadTask.uploadTaskId(), "uploadTaskId");
+    rateLimiter.acquire();
     TrueConfResponse upload = fileUploader.upload(uploadTaskId, file, preview);
     String temporalFileId = requiredField(upload.temporalFileId(), "temporalFileId");
-    return transport.request(id -> commandFactory.sendFile(
+    return request(id -> commandFactory.sendFile(
         id,
         chatId,
         temporalFileId,
@@ -63,27 +69,32 @@ public class DefaultTrueConfClient implements TrueConfClient {
 
   @Override
   public TrueConfResponse sendSurvey(String chatId, JsonNode surveyPayload, String replyMessageId) {
-    return transport.request(id -> commandFactory.sendSurvey(id, chatId, surveyPayload, replyMessageId));
+    return request(id -> commandFactory.sendSurvey(id, chatId, surveyPayload, replyMessageId));
   }
 
   @Override
   public TrueConfResponse editMessage(String messageId, String text, String parseMode) {
-    return transport.request(id -> commandFactory.editMessage(id, messageId, text, parseMode));
+    return request(id -> commandFactory.editMessage(id, messageId, text, parseMode));
   }
 
   @Override
   public TrueConfResponse editSurvey(String messageId, JsonNode surveyPayload) {
-    return transport.request(id -> commandFactory.editSurvey(id, messageId, surveyPayload));
+    return request(id -> commandFactory.editSurvey(id, messageId, surveyPayload));
   }
 
   @Override
   public TrueConfResponse removeMessage(String messageId, boolean forAll) {
-    return transport.request(id -> commandFactory.removeMessage(id, messageId, forAll));
+    return request(id -> commandFactory.removeMessage(id, messageId, forAll));
   }
 
   @Override
   public TrueConfResponse forwardMessage(String chatId, String messageId) {
-    return transport.request(id -> commandFactory.forwardMessage(id, chatId, messageId));
+    return request(id -> commandFactory.forwardMessage(id, chatId, messageId));
+  }
+
+  private TrueConfResponse request(Function<Long, ObjectNode> commandBuilder) {
+    rateLimiter.acquire();
+    return transport.request(commandBuilder);
   }
 
   private static String requiredField(String value, String fieldName) {
