@@ -168,6 +168,7 @@ public class TrueConfSession implements TrueConfCommandTransport, AutoCloseable 
     requestId.set(0);
     try {
       webSocket = httpClient.newWebSocketBuilder()
+          .header("Origin", websocketOrigin(properties.wsUrl()))
           .subprotocols("json.v1")
           .buildAsync(URI.create(properties.wsUrl()), new SessionListener())
           .join();
@@ -400,6 +401,16 @@ public class TrueConfSession implements TrueConfCommandTransport, AutoCloseable 
       current = current.getCause();
     }
     return current;
+  }
+
+  private static String websocketOrigin(String wsUrl) {
+    URI uri = URI.create(wsUrl);
+    String scheme = switch (uri.getScheme()) {
+      case "wss" -> "https";
+      case "ws" -> "http";
+      default -> uri.getScheme();
+    };
+    return URI.create(scheme + "://" + uri.getAuthority()).toString();
   }
 
   private record PendingRequest(

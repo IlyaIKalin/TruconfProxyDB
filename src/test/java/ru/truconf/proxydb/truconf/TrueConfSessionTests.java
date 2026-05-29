@@ -15,6 +15,7 @@ import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClient;
@@ -87,6 +88,11 @@ class TrueConfSessionTests {
           .filter(node -> node.get("type").asInt() == 1)
           .map(node -> node.get("method").asText()))
           .containsExactly("auth", "sendMessage");
+      RecordedRequest tokenRequest = server.takeRequest();
+      RecordedRequest websocketRequest = server.takeRequest();
+      assertThat(tokenRequest.getPath()).isEqualTo("/bridge/api/client/v1/oauth/token");
+      assertThat(websocketRequest.getHeader("Origin"))
+          .isEqualTo(server.url("").toString().replaceFirst("/$", ""));
     }
   }
 
