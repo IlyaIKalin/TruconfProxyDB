@@ -143,6 +143,24 @@ class TrueConfSessionTests {
     }
   }
 
+  @Test
+  void reportsWebSocketHandshakeStatus() throws Exception {
+    server = new MockWebServer();
+    server.enqueue(tokenResponse());
+    server.enqueue(new MockResponse().setResponseCode(404));
+    server.start();
+
+    try (TrueConfSession session = session(properties())) {
+      assertThatThrownBy(() -> session.request(
+          id -> commandFactory.sendMessage(id, "chat-1", "Hello", "text", null)))
+          .isInstanceOfSatisfying(TrueConfException.class, ex -> {
+            assertThat(ex.code()).isEqualTo("WEBSOCKET_CONNECT_FAILED");
+            assertThat(ex.getMessage()).contains("handshake returned HTTP 404");
+            assertThat(ex.retryable()).isTrue();
+          });
+    }
+  }
+
   private WebSocketListener listenerThatClosesOnSend(AtomicInteger connection) {
     return new WebSocketListener() {
       @Override

@@ -4,11 +4,13 @@ import jakarta.annotation.PreDestroy;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
+import java.net.http.WebSocketHandshakeException;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -173,11 +175,11 @@ public class TrueConfSession implements TrueConfCommandTransport, AutoCloseable 
     } catch (RuntimeException ex) {
       failPendingRequests(retryableException(
           "WEBSOCKET_CONNECT_FAILED",
-          "TrueConf WebSocket connection failed",
+          websocketConnectFailedMessage(ex),
           ex));
       throw retryableException(
           "WEBSOCKET_CONNECT_FAILED",
-          "TrueConf WebSocket connection failed",
+          websocketConnectFailedMessage(ex),
           ex);
     }
   }
@@ -377,6 +379,27 @@ public class TrueConfSession implements TrueConfCommandTransport, AutoCloseable 
       String message,
       Throwable cause) {
     return new TrueConfException(code, message, true, cause);
+  }
+
+  private static String websocketConnectFailedMessage(Throwable throwable) {
+    Throwable cause = unwrap(throwable);
+    String message = "TrueConf WebSocket connection failed";
+    if (cause instanceof WebSocketHandshakeException ex) {
+      return message + ": handshake returned HTTP " + ex.getResponse().statusCode();
+    }
+    if (cause != null && cause.getMessage() != null && !cause.getMessage().isBlank()) {
+      return message + ": " + cause.getMessage();
+    }
+    return message;
+  }
+
+  private static Throwable unwrap(Throwable throwable) {
+    Throwable current = throwable;
+    while ((current instanceof CompletionException || current instanceof ExecutionException)
+        && current.getCause() != null) {
+      current = current.getCause();
+    }
+    return current;
   }
 
   private record PendingRequest(
