@@ -51,6 +51,7 @@ public class TrueConfSession implements TrueConfCommandTransport, AutoCloseable 
   public TrueConfSession(
       AppProperties properties,
       TrueConfTokenService tokenService,
+      TrueConfHttpClientFactory httpClientFactory,
       TrueConfCommandFactory commandFactory,
       TrueConfResponseMapper responseMapper,
       TrueConfErrorClassifier errorClassifier,
@@ -62,11 +63,26 @@ public class TrueConfSession implements TrueConfCommandTransport, AutoCloseable 
         responseMapper,
         errorClassifier,
         objectMapper,
-        HttpClient.newBuilder()
-            .connectTimeout(properties.websocket().connectTimeout())
-            .build(),
+        httpClientFactory.httpClient(properties.websocket().connectTimeout()),
         Executors.newSingleThreadScheduledExecutor(new DaemonThreadFactory("truconf-ws-timeout-")),
         true);
+  }
+
+  public TrueConfSession(
+      AppProperties properties,
+      TrueConfTokenService tokenService,
+      TrueConfCommandFactory commandFactory,
+      TrueConfResponseMapper responseMapper,
+      TrueConfErrorClassifier errorClassifier,
+      ObjectMapper objectMapper) {
+    this(
+        properties,
+        tokenService,
+        new TrueConfHttpClientFactory(properties),
+        commandFactory,
+        responseMapper,
+        errorClassifier,
+        objectMapper);
   }
 
   TrueConfSession(

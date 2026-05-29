@@ -35,12 +35,22 @@ public class TrueConfTokenService {
   public TrueConfTokenService(
       AppProperties properties,
       RestClient.Builder restClientBuilder,
+      TrueConfHttpClientFactory httpClientFactory,
       ObjectMapper objectMapper) {
     this(
         properties,
-        restClientBuilder.baseUrl(stripTrailingSlash(properties.httpBaseUrl())).build(),
+        httpClientFactory.configure(restClientBuilder)
+            .baseUrl(stripTrailingSlash(properties.httpBaseUrl()))
+            .build(),
         objectMapper,
         Clock.systemUTC());
+  }
+
+  public TrueConfTokenService(
+      AppProperties properties,
+      RestClient.Builder restClientBuilder,
+      ObjectMapper objectMapper) {
+    this(properties, restClientBuilder, new TrueConfHttpClientFactory(properties), objectMapper);
   }
 
   TrueConfTokenService(

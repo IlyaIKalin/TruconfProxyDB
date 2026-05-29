@@ -18,10 +18,38 @@ public record AppProperties(
     @NotBlank String password,
     @NotBlank String proxyApiKey,
     @NotBlank String fileStorageDir,
+    boolean tlsInsecureSkipVerify,
     @Valid @NotNull Dispatcher dispatcher,
     @Valid @NotNull Retry retry,
     @Valid @NotNull RateLimit rateLimit,
     @Valid @NotNull Websocket websocket) {
+
+  public AppProperties(
+      String httpBaseUrl,
+      String wsUrl,
+      String clientId,
+      String username,
+      String password,
+      String proxyApiKey,
+      String fileStorageDir,
+      Dispatcher dispatcher,
+      Retry retry,
+      RateLimit rateLimit,
+      Websocket websocket) {
+    this(
+        httpBaseUrl,
+        wsUrl,
+        clientId,
+        username,
+        password,
+        proxyApiKey,
+        fileStorageDir,
+        false,
+        dispatcher,
+        retry,
+        rateLimit,
+        websocket);
+  }
 
   public record Dispatcher(
       @Min(1) int batchSize,

@@ -34,12 +34,32 @@ public class TrueConfFileUploadClient implements TrueConfFileUploader {
   public TrueConfFileUploadClient(
       AppProperties properties,
       RestClient.Builder restClientBuilder,
+      TrueConfHttpClientFactory httpClientFactory,
       TrueConfTokenService tokenService,
       TrueConfResponseMapper responseMapper,
       TrueConfErrorClassifier errorClassifier,
       ObjectMapper objectMapper) {
     this(
-        restClientBuilder.baseUrl(stripTrailingSlash(properties.httpBaseUrl())).build(),
+        httpClientFactory.configure(restClientBuilder)
+            .baseUrl(stripTrailingSlash(properties.httpBaseUrl()))
+            .build(),
+        tokenService,
+        responseMapper,
+        errorClassifier,
+        objectMapper);
+  }
+
+  public TrueConfFileUploadClient(
+      AppProperties properties,
+      RestClient.Builder restClientBuilder,
+      TrueConfTokenService tokenService,
+      TrueConfResponseMapper responseMapper,
+      TrueConfErrorClassifier errorClassifier,
+      ObjectMapper objectMapper) {
+    this(
+        properties,
+        restClientBuilder,
+        new TrueConfHttpClientFactory(properties),
         tokenService,
         responseMapper,
         errorClassifier,

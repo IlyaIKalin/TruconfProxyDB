@@ -97,6 +97,7 @@ TrueConf, OAuth-токены и пароли к базе данных.
 | `TRUCONF_PASSWORD` | `change-me` | Пароль бота TrueConf. |
 | `TRUCONF_PROXY_API_KEY` | `change-me` | Обязательное значение `X-API-Key` для `/api/v1/**`. |
 | `TRUCONF_FILE_STORAGE_DIR` | `/var/lib/truconf-proxydb/files` | Корневой каталог для сохранённых файлов. |
+| `TRUCONF_TLS_INSECURE_SKIP_VERIFY` | `false` | Отключает проверку TLS-сертификатов только для исходящих клиентов TrueConf. Используйте только как временный workaround для стендов с некорректной цепочкой сертификатов. |
 | `TRUCONF_DISPATCHER_ENABLED` | `true` | Включает фоновую обработку outbox. |
 | `TRUCONF_DISPATCHER_BATCH_SIZE` | `50` | Максимум заданий, которые dispatcher забирает за один tick. |
 | `TRUCONF_DISPATCHER_POLL_INTERVAL` | `5s` | Интервал fallback polling. |

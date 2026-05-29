@@ -33,6 +33,7 @@ truconf:
   password: ${TRUCONF_PASSWORD:change-me}
   proxy-api-key: ${TRUCONF_PROXY_API_KEY:change-me}
   file-storage-dir: ${TRUCONF_FILE_STORAGE_DIR:/var/lib/truconf-proxydb/files}
+  tls-insecure-skip-verify: ${TRUCONF_TLS_INSECURE_SKIP_VERIFY:false}
   dispatcher:
     enabled: ${TRUCONF_DISPATCHER_ENABLED:true}
     batch-size: ${TRUCONF_DISPATCHER_BATCH_SIZE:50}
