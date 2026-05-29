@@ -6,6 +6,8 @@ public interface TrueConfClient {
 
   TrueConfResponse createP2PChat(String userId);
 
+  TrueConfResponse getChats(int count, int page);
+
   TrueConfResponse sendMessage(
       String chatId,
       String text,

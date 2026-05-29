@@ -412,6 +412,12 @@ class OutboxDeliveryExecutorTests {
     }
 
     @Override
+    public TrueConfResponse getChats(int count, int page) {
+      calls.add("getChats:" + count + ":" + page);
+      return response(null, null, null, null);
+    }
+
+    @Override
     public TrueConfResponse sendMessage(
         String chatId,
         String text,

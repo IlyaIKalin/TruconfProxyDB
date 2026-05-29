@@ -16,6 +16,7 @@ import ru.truconf.proxydb.api.OutboxDtos.ErrorBody;
 import ru.truconf.proxydb.api.OutboxDtos.ErrorDetail;
 import ru.truconf.proxydb.api.OutboxDtos.FieldErrorDto;
 import ru.truconf.proxydb.outbox.OutboxJobNotFoundException;
+import ru.truconf.proxydb.truconf.TrueConfException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -55,6 +56,12 @@ public class ApiExceptionHandler {
   @ExceptionHandler(MultipartException.class)
   public ResponseEntity<ErrorBody> handleMultipart(MultipartException ex) {
     return error(HttpStatus.BAD_REQUEST, "BAD_REQUEST", ex.getMessage(), List.of());
+  }
+
+  @ExceptionHandler(TrueConfException.class)
+  public ResponseEntity<ErrorBody> handleTrueConf(TrueConfException ex) {
+    HttpStatus status = ex.retryable() ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.BAD_GATEWAY;
+    return error(status, ex.code(), ex.getMessage(), List.of());
   }
 
   @ExceptionHandler({

@@ -52,6 +52,27 @@ class DefaultTrueConfClientTests {
     assertThat(sendFileCommand.get("payload").get("replyMessageId").asText()).isEqualTo("reply-1");
   }
 
+  @Test
+  void getChatsUsesWebSocketTransportAndRateLimiter() {
+    RecordingTransport transport = new RecordingTransport(objectMapper);
+    RecordingFileUploader uploader = new RecordingFileUploader(objectMapper);
+    RecordingRateLimiter rateLimiter = new RecordingRateLimiter();
+    DefaultTrueConfClient client = new DefaultTrueConfClient(
+        transport,
+        commandFactory,
+        uploader,
+        rateLimiter);
+
+    TrueConfResponse response = client.getChats(25, 2);
+
+    assertThat(response.rawResponse().get("payload").get("chats").size()).isEqualTo(1);
+    assertThat(transport.methods()).containsExactly("getChats");
+    assertThat(rateLimiter.acquireCount()).isEqualTo(1);
+    JsonNode command = transport.commands().getFirst();
+    assertThat(command.get("payload").get("count").asInt()).isEqualTo(25);
+    assertThat(command.get("payload").get("page").asInt()).isEqualTo(2);
+  }
+
   private TrueConfUploadFile uploadFile(String fileName, String content) {
     byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
     return new TrueConfUploadFile(
@@ -118,6 +139,19 @@ class DefaultTrueConfClientTests {
             null,
             null,
             raw("messageId", "message-1"));
+      }
+      if ("getChats".equals(method)) {
+        ObjectNode chat = objectMapper.createObjectNode();
+        chat.put("chatId", "chat-1");
+        chat.put("title", "Support");
+        var chats = objectMapper.createArrayNode();
+        chats.add(chat);
+        ObjectNode payload = objectMapper.createObjectNode();
+        payload.set("chats", chats);
+        ObjectNode root = objectMapper.createObjectNode();
+        root.put("type", 2);
+        root.set("payload", payload);
+        return new TrueConfResponse(null, null, null, null, null, null, null, root);
       }
       throw new AssertionError("Unexpected method: " + method);
     }

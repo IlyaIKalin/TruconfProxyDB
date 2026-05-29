@@ -31,6 +31,11 @@ public class DefaultTrueConfClient implements TrueConfClient {
   }
 
   @Override
+  public TrueConfResponse getChats(int count, int page) {
+    return request(id -> commandFactory.getChats(id, count, page));
+  }
+
+  @Override
   public TrueConfResponse sendMessage(
       String chatId,
       String text,

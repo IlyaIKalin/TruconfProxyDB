@@ -52,6 +52,18 @@ class TrueConfCommandFactoryTests {
     assertJsonEquals("""
         {
           "type": 1,
+          "id": 11,
+          "method": "getChats",
+          "payload": {
+            "count": 25,
+            "page": 2
+          }
+        }
+        """, factory.getChats(11, 25, 2));
+
+    assertJsonEquals("""
+        {
+          "type": 1,
           "id": 3,
           "method": "sendMessage",
           "payload": {
@@ -212,6 +224,10 @@ class TrueConfCommandFactoryTests {
     assertThatThrownBy(() -> factory.uploadFile(1, "file.txt", -1))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("fileSize must not be negative");
+
+    assertThatThrownBy(() -> factory.getChats(1, 0, 1))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("count must be positive");
 
     assertThatThrownBy(() -> factory.sendSurvey(1, "chat-1", objectMapper.createArrayNode(), null))
         .isInstanceOf(IllegalArgumentException.class)

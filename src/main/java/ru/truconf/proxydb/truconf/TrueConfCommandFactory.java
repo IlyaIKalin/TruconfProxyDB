@@ -50,6 +50,20 @@ public class TrueConfCommandFactory {
     return request(id, "createP2PChat", payload);
   }
 
+  public ObjectNode getChats(long id, int count, int page) {
+    if (count < 1) {
+      throw new IllegalArgumentException("count must be positive");
+    }
+    if (page < 1) {
+      throw new IllegalArgumentException("page must be positive");
+    }
+
+    ObjectNode payload = objectMapper.createObjectNode();
+    payload.put("count", count);
+    payload.put("page", page);
+    return request(id, "getChats", payload);
+  }
+
   public ObjectNode sendMessage(
       long id,
       String chatId,

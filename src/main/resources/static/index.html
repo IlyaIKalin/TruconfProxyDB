@@ -1,0 +1,1258 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TruconfProxyDB Console</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f7f5ee;
+      --panel: #fffdf7;
+      --ink: #1f2428;
+      --muted: #687077;
+      --line: #d8d1c3;
+      --soft: #ece6d8;
+      --accent: #116a72;
+      --accent-dark: #0a4449;
+      --warn: #b85c24;
+      --bad: #a8323e;
+      --good: #277245;
+      --shadow: 0 18px 45px rgba(37, 32, 24, .13);
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      --sans: "Aptos", "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(90deg, rgba(31, 36, 40, .035) 1px, transparent 1px) 0 0 / 28px 28px,
+        linear-gradient(rgba(31, 36, 40, .025) 1px, transparent 1px) 0 0 / 28px 28px,
+        var(--paper);
+      color: var(--ink);
+      font-family: var(--sans);
+    }
+
+    button, input, select, textarea {
+      font: inherit;
+    }
+
+    .shell {
+      width: min(1500px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 22px 0 32px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(260px, 1fr) minmax(320px, 560px);
+      gap: 16px;
+      align-items: stretch;
+      margin-bottom: 16px;
+    }
+
+    .brand, .key-panel, .panel, .result-panel {
+      background: rgba(255, 253, 247, .93);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .brand {
+      padding: 18px 20px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(24px, 3vw, 42px);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .health {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      background: var(--soft);
+      border-radius: 999px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--warn);
+      box-shadow: 0 0 0 3px rgba(184, 92, 36, .13);
+    }
+
+    .dot.ok {
+      background: var(--good);
+      box-shadow: 0 0 0 3px rgba(39, 114, 69, .13);
+    }
+
+    .key-panel {
+      border-radius: 8px;
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-content: center;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      padding: 10px 11px;
+      outline: none;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(17, 106, 114, .13);
+    }
+
+    textarea {
+      min-height: 140px;
+      resize: vertical;
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .btn {
+      border: 1px solid var(--accent-dark);
+      background: var(--accent);
+      color: #fff;
+      border-radius: 6px;
+      min-height: 40px;
+      padding: 9px 13px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .btn:hover {
+      background: var(--accent-dark);
+    }
+
+    .btn.secondary {
+      color: var(--accent-dark);
+      background: #eef7f3;
+      border-color: #9fc9bf;
+    }
+
+    .btn.secondary:hover {
+      background: #dcefe9;
+    }
+
+    .btn.ghost {
+      background: transparent;
+      color: var(--ink);
+      border-color: var(--line);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(360px, 470px) minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel, .result-panel {
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      background: #f2edde;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 16px;
+      letter-spacing: 0;
+    }
+
+    .panel-body {
+      padding: 16px;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
+      gap: 6px;
+      padding: 8px;
+      background: #eee7d8;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .tab {
+      min-height: 38px;
+      border: 1px solid transparent;
+      background: transparent;
+      border-radius: 6px;
+      cursor: pointer;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .tab.active {
+      color: var(--ink);
+      border-color: var(--line);
+      background: var(--panel);
+      box-shadow: 0 4px 14px rgba(43, 36, 26, .08);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .field {
+      margin-bottom: 12px;
+    }
+
+    .span {
+      grid-column: 1 / -1;
+    }
+
+    .recipient {
+      display: grid;
+      grid-template-columns: 118px 1fr;
+      gap: 10px;
+    }
+
+    .checkbox {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-height: 42px;
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+    }
+
+    .checkbox input {
+      width: 18px;
+      height: 18px;
+      margin: 0;
+    }
+
+    .checkbox span {
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      margin: 8px 0 0;
+    }
+
+    .status-card {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(130px, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fffaf0;
+      min-height: 78px;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      margin-bottom: 8px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 18px;
+      overflow-wrap: anywhere;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 800;
+      border: 1px solid var(--line);
+      background: var(--soft);
+    }
+
+    .pill.NEW, .pill.PROCESSING {
+      color: #835017;
+      background: #fff2d6;
+      border-color: #e6c783;
+    }
+
+    .pill.SENT {
+      color: #1e6a3e;
+      background: #e7f6e9;
+      border-color: #9cccaa;
+    }
+
+    .pill.FAILED {
+      color: #96313b;
+      background: #fde8e8;
+      border-color: #e5a3a8;
+    }
+
+    pre {
+      margin: 0;
+      min-height: 390px;
+      max-height: 620px;
+      overflow: auto;
+      padding: 16px;
+      border-radius: 8px;
+      background: #182024;
+      color: #e7efe9;
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .lookup {
+      display: grid;
+      grid-template-columns: 130px 1fr auto;
+      gap: 8px;
+      align-items: end;
+      margin-bottom: 14px;
+    }
+
+    .recent {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .recent button {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      padding: 7px 10px;
+      cursor: pointer;
+      color: var(--muted);
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      max-width: min(460px, calc(100vw - 36px));
+      padding: 13px 15px;
+      border-radius: 8px;
+      background: #20282c;
+      color: #fff;
+      box-shadow: var(--shadow);
+      transform: translateY(18px);
+      opacity: 0;
+      pointer-events: none;
+      transition: .18s ease;
+      z-index: 10;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    @media (max-width: 980px) {
+      .topbar, .layout, .status-card {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .shell {
+        width: min(100% - 20px, 1500px);
+        padding-top: 10px;
+      }
+
+      .brand, .key-panel, .lookup, .recipient, .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .brand {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .tabs {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="topbar">
+      <div class="brand">
+        <div>
+          <h1>TruconfProxyDB Console</h1>
+          <p class="subtitle">Очередь, файлы и статусы outbox без curl.</p>
+        </div>
+        <div class="health" title="GET /actuator/health">
+          <span id="healthDot" class="dot"></span>
+          <span id="healthText">health...</span>
+        </div>
+      </div>
+
+      <div class="key-panel">
+        <div>
+          <label for="apiKey">X-API-Key</label>
+          <input id="apiKey" type="password" autocomplete="off" placeholder="change-me">
+          <p class="hint">Ключ хранится только в sessionStorage текущей вкладки.</p>
+        </div>
+        <button id="saveKey" class="btn secondary" type="button">Сохранить</button>
+      </div>
+    </section>
+
+    <section class="layout">
+      <div class="panel">
+        <div class="tabs" role="tablist">
+          <button class="tab active" type="button" data-tab="message">Сообщение</button>
+          <button class="tab" type="button" data-tab="file">Файл</button>
+          <button class="tab" type="button" data-tab="chats">Чаты</button>
+          <button class="tab" type="button" data-tab="survey">Опросы</button>
+          <button class="tab" type="button" data-tab="actions">Действия</button>
+          <button class="tab" type="button" data-tab="advanced">JSON</button>
+          <button class="tab" type="button" data-tab="lookup">Статус</button>
+        </div>
+
+        <form id="messageForm" class="panel-body form-tab" data-panel="message">
+          <div class="field">
+            <label>Получатель</label>
+            <div class="recipient">
+              <select name="recipientKind">
+                <option value="CHAT">CHAT</option>
+                <option value="USER">USER</option>
+              </select>
+              <input name="recipientValue" placeholder="chatId или userId" required>
+            </div>
+          </div>
+          <div class="grid">
+            <div class="field">
+              <label>External ID</label>
+              <input name="externalId" placeholder="demo-message-1">
+            </div>
+            <div class="field">
+              <label>Parse mode</label>
+              <select name="parseMode">
+                <option value="">default</option>
+                <option value="text">text</option>
+                <option value="html">html</option>
+                <option value="markdown">markdown</option>
+              </select>
+            </div>
+            <div class="field span">
+              <label>Текст</label>
+              <textarea name="text" required placeholder="Сообщение для TrueConf"></textarea>
+            </div>
+            <div class="field">
+              <label>Reply message ID</label>
+              <input name="replyMessageId">
+            </div>
+            <div class="field">
+              <label>Max attempts</label>
+              <input name="maxAttempts" type="number" min="1" placeholder="default">
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn" type="submit">Поставить в очередь</button>
+            <button class="btn ghost" type="button" data-fill="message">Пример</button>
+          </div>
+        </form>
+
+        <form id="fileForm" class="panel-body form-tab hidden" data-panel="file">
+          <div class="field">
+            <label>Получатель</label>
+            <div class="recipient">
+              <select name="recipientKind">
+                <option value="CHAT">CHAT</option>
+                <option value="USER">USER</option>
+              </select>
+              <input name="recipientValue" placeholder="chatId или userId" required>
+            </div>
+          </div>
+          <div class="grid">
+            <div class="field">
+              <label>External ID</label>
+              <input name="externalId" placeholder="demo-file-1">
+            </div>
+            <div class="field">
+              <label>Parse mode</label>
+              <select name="parseMode">
+                <option value="">default</option>
+                <option value="text">text</option>
+                <option value="html">html</option>
+                <option value="markdown">markdown</option>
+              </select>
+            </div>
+            <div class="field span">
+              <label>Файл</label>
+              <input name="file" type="file" required>
+            </div>
+            <div class="field span">
+              <label>Preview</label>
+              <input name="preview" type="file">
+            </div>
+            <div class="field span">
+              <label>Caption</label>
+              <textarea name="caption" placeholder="Подпись к файлу"></textarea>
+            </div>
+            <div class="field">
+              <label>Reply message ID</label>
+              <input name="replyMessageId">
+            </div>
+            <div class="field">
+              <label>Max attempts</label>
+              <input name="maxAttempts" type="number" min="1" placeholder="default">
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn" type="submit">Загрузить файл</button>
+          </div>
+        </form>
+
+        <div class="panel-body form-tab hidden" data-panel="chats">
+          <div class="grid">
+            <div class="field">
+              <label for="chatCount">Count</label>
+              <input id="chatCount" type="number" min="1" max="100" value="50">
+            </div>
+            <div class="field">
+              <label for="chatPage">Page</label>
+              <input id="chatPage" type="number" min="1" value="1">
+            </div>
+          </div>
+          <div class="actions">
+            <button id="loadChatsButton" class="btn" type="button">Загрузить чаты</button>
+          </div>
+          <div class="field">
+            <label for="p2pUserId">P2P userId</label>
+            <input id="p2pUserId" placeholder="user@example.com">
+          </div>
+          <div class="actions">
+            <button id="createP2pButton" class="btn secondary" type="button">Создать P2P</button>
+          </div>
+          <p class="hint">Запрос идет напрямую в TrueConf через WebSocket-сессию proxy и не создает outbox job.</p>
+        </div>
+
+        <form id="surveyForm" class="panel-body form-tab hidden" data-panel="survey">
+          <div class="grid">
+            <div class="field">
+              <label>Operation</label>
+              <select name="operation">
+                <option value="SEND_SURVEY">SEND_SURVEY</option>
+                <option value="EDIT_SURVEY">EDIT_SURVEY</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>External ID</label>
+              <input name="externalId" placeholder="demo-survey-1">
+            </div>
+            <div class="field span">
+              <label>Получатель</label>
+              <div class="recipient">
+                <select name="recipientKind">
+                  <option value="CHAT">CHAT</option>
+                  <option value="USER">USER</option>
+                </select>
+                <input name="recipientValue" placeholder="chatId или userId" required>
+              </div>
+            </div>
+            <div class="field">
+              <label>Target message ID</label>
+              <input name="targetMessageId" placeholder="для EDIT_SURVEY">
+            </div>
+            <div class="field">
+              <label>Reply message ID</label>
+              <input name="replyMessageId">
+            </div>
+            <div class="field">
+              <label>URL</label>
+              <input name="url" required>
+            </div>
+            <div class="field">
+              <label>App version</label>
+              <input name="appVersion" required>
+            </div>
+            <div class="field">
+              <label>Path</label>
+              <input name="path" required>
+            </div>
+            <div class="field">
+              <label>Title</label>
+              <input name="title" required>
+            </div>
+            <div class="field span">
+              <label>Description</label>
+              <textarea name="description" required></textarea>
+            </div>
+            <div class="field">
+              <label>Button text</label>
+              <input name="buttonText" required>
+            </div>
+            <div class="field">
+              <label>Secret</label>
+              <input name="secret" required>
+            </div>
+            <div class="field span">
+              <label>Alt</label>
+              <textarea name="alt" required></textarea>
+            </div>
+            <div class="field">
+              <label>Max attempts</label>
+              <input name="maxAttempts" type="number" min="1" placeholder="default">
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn" type="submit">Поставить опрос</button>
+            <button class="btn ghost" type="button" data-fill="survey-form">Пример</button>
+          </div>
+        </form>
+
+        <form id="actionsForm" class="panel-body form-tab hidden" data-panel="actions">
+          <div class="grid">
+            <div class="field">
+              <label>Operation</label>
+              <select name="operation">
+                <option value="EDIT_MESSAGE">EDIT_MESSAGE</option>
+                <option value="REMOVE_MESSAGE">REMOVE_MESSAGE</option>
+                <option value="FORWARD_MESSAGE">FORWARD_MESSAGE</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>External ID</label>
+              <input name="externalId">
+            </div>
+            <div class="field span">
+              <label>Получатель</label>
+              <div class="recipient">
+                <select name="recipientKind">
+                  <option value="CHAT">CHAT</option>
+                  <option value="USER">USER</option>
+                </select>
+                <input name="recipientValue" placeholder="chatId или userId" required>
+              </div>
+            </div>
+            <div class="field span">
+              <label>Target message ID</label>
+              <input name="targetMessageId" required>
+            </div>
+            <div class="field action-text span">
+              <label>Text</label>
+              <textarea name="text"></textarea>
+            </div>
+            <div class="field action-text">
+              <label>Parse mode</label>
+              <select name="parseMode">
+                <option value="">default</option>
+                <option value="text">text</option>
+                <option value="html">html</option>
+                <option value="markdown">markdown</option>
+              </select>
+            </div>
+            <div class="field action-remove">
+              <label>For all</label>
+              <label class="checkbox"><input name="forAll" type="checkbox" checked><span>true</span></label>
+            </div>
+            <div class="field">
+              <label>Max attempts</label>
+              <input name="maxAttempts" type="number" min="1" placeholder="default">
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn" type="submit">Поставить действие</button>
+            <button class="btn ghost" type="button" data-fill="action-edit">Edit пример</button>
+            <button class="btn ghost" type="button" data-fill="action-remove">Remove пример</button>
+          </div>
+        </form>
+
+        <form id="advancedForm" class="panel-body form-tab hidden" data-panel="advanced">
+          <div class="grid">
+            <div class="field">
+              <label>Operation</label>
+              <select name="operation">
+                <option>SEND_SURVEY</option>
+                <option>EDIT_MESSAGE</option>
+                <option>EDIT_SURVEY</option>
+                <option>REMOVE_MESSAGE</option>
+                <option>FORWARD_MESSAGE</option>
+                <option>SEND_MESSAGE</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>External ID</label>
+              <input name="externalId">
+            </div>
+            <div class="field span">
+              <label>Получатель</label>
+              <div class="recipient">
+                <select name="recipientKind">
+                  <option value="CHAT">CHAT</option>
+                  <option value="USER">USER</option>
+                </select>
+                <input name="recipientValue" placeholder="chatId или userId" required>
+              </div>
+            </div>
+            <div class="field">
+              <label>Target message ID</label>
+              <input name="targetMessageId">
+            </div>
+            <div class="field">
+              <label>Reply message ID</label>
+              <input name="replyMessageId">
+            </div>
+            <div class="field span">
+              <label>Payload JSON</label>
+              <textarea name="payload" spellcheck="false">{
+  "text": "Hello from portal",
+  "parseMode": "text"
+}</textarea>
+            </div>
+            <div class="field">
+              <label>Max attempts</label>
+              <input name="maxAttempts" type="number" min="1" placeholder="default">
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn" type="submit">Отправить операцию</button>
+            <button class="btn ghost" type="button" data-fill="survey">Survey JSON</button>
+            <button class="btn ghost" type="button" data-fill="remove">Remove JSON</button>
+          </div>
+        </form>
+
+        <div class="panel-body form-tab hidden" data-panel="lookup">
+          <div class="lookup">
+            <div>
+              <label for="lookupMode">Поиск</label>
+              <select id="lookupMode">
+                <option value="id">ID</option>
+                <option value="external">External ID</option>
+              </select>
+            </div>
+            <div>
+              <label for="lookupValue">Значение</label>
+              <input id="lookupValue" placeholder="1">
+            </div>
+            <button id="lookupButton" class="btn" type="button">Найти</button>
+          </div>
+          <div class="actions">
+            <button id="refreshButton" class="btn secondary" type="button">Обновить последний</button>
+            <button id="clearRecent" class="btn ghost" type="button">Очистить историю</button>
+          </div>
+          <div id="recent" class="recent"></div>
+        </div>
+      </div>
+
+      <div class="result-panel">
+        <div class="panel-head">
+          <h2 class="panel-title">Ответ proxy</h2>
+          <span id="statusPill" class="pill">Нет запроса</span>
+        </div>
+        <div class="panel-body">
+          <div class="status-card">
+            <div class="metric"><span>Outbox ID</span><strong id="metricId">-</strong></div>
+            <div class="metric"><span>External ID</span><strong id="metricExternal">-</strong></div>
+            <div class="metric"><span>Попытки</span><strong id="metricAttempts">-</strong></div>
+            <div class="metric"><span>TrueConf</span><strong id="metricTrueconf">-</strong></div>
+          </div>
+          <pre id="output">Готово к работе. Введите X-API-Key и поставьте тестовое задание в очередь.</pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const apiKeyInput = document.querySelector('#apiKey');
+    const output = document.querySelector('#output');
+    const statusPill = document.querySelector('#statusPill');
+    const toast = document.querySelector('#toast');
+    const recentWrap = document.querySelector('#recent');
+    const state = {
+      lastLookup: null,
+      recent: JSON.parse(sessionStorage.getItem('truconf.console.recent') || '[]')
+    };
+
+    apiKeyInput.value = sessionStorage.getItem('truconf.console.apiKey') || '';
+    renderRecent();
+    checkHealth();
+    updateActionFields();
+
+    document.querySelector('#saveKey').addEventListener('click', () => {
+      sessionStorage.setItem('truconf.console.apiKey', apiKeyInput.value.trim());
+      notify('Ключ сохранен для текущей вкладки');
+    });
+
+    document.querySelectorAll('.tab').forEach(button => {
+      button.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(item => item.classList.remove('active'));
+        document.querySelectorAll('.form-tab').forEach(item => item.classList.add('hidden'));
+        button.classList.add('active');
+        document.querySelector(`[data-panel="${button.dataset.tab}"]`).classList.remove('hidden');
+      });
+    });
+
+    document.querySelector('#messageForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const form = new FormData(event.currentTarget);
+      const payload = {
+        text: value(form, 'text')
+      };
+      putIfPresent(payload, 'parseMode', value(form, 'parseMode'));
+
+      const body = baseRequest(form, 'SEND_MESSAGE', payload);
+      await createJsonJob(body);
+    });
+
+    document.querySelector('#fileForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const form = new FormData(event.currentTarget);
+      const request = {
+        recipient: recipient(form),
+      };
+      putIfPresent(request, 'externalId', value(form, 'externalId'));
+      putIfPresent(request, 'caption', value(form, 'caption'));
+      putIfPresent(request, 'parseMode', value(form, 'parseMode'));
+      putIfPresent(request, 'replyMessageId', value(form, 'replyMessageId'));
+      putNumberIfPresent(request, 'maxAttempts', value(form, 'maxAttempts'));
+
+      const multipart = new FormData();
+      multipart.append('request', new Blob([JSON.stringify(request)], { type: 'application/json' }));
+      multipart.append('file', form.get('file'));
+      const preview = form.get('preview');
+      if (preview && preview.size > 0) {
+        multipart.append('preview', preview);
+      }
+
+      await request('/api/v1/outbox/files', {
+        method: 'POST',
+        body: multipart
+      });
+    });
+
+    document.querySelector('#surveyForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const form = new FormData(event.currentTarget);
+      const body = baseRequest(form, value(form, 'operation'), surveyPayload(form));
+      putIfPresent(body, 'targetMessageId', value(form, 'targetMessageId'));
+      await createJsonJob(body);
+    });
+
+    document.querySelector('#actionsForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const form = new FormData(event.currentTarget);
+      const operation = value(form, 'operation');
+      let payload = {};
+      if (operation === 'EDIT_MESSAGE') {
+        payload = { text: value(form, 'text') };
+        putIfPresent(payload, 'parseMode', value(form, 'parseMode'));
+      } else if (operation === 'REMOVE_MESSAGE') {
+        payload = { forAll: form.get('forAll') === 'on' };
+      }
+      const body = baseRequest(form, operation, payload);
+      putIfPresent(body, 'targetMessageId', value(form, 'targetMessageId'));
+      await createJsonJob(body);
+    });
+
+    document.querySelector('#advancedForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const form = new FormData(event.currentTarget);
+      let payload;
+      try {
+        payload = JSON.parse(value(form, 'payload') || '{}');
+      } catch (error) {
+        notify('Payload JSON не парсится: ' + error.message);
+        return;
+      }
+      const body = baseRequest(form, value(form, 'operation'), payload);
+      putIfPresent(body, 'targetMessageId', value(form, 'targetMessageId'));
+      await createJsonJob(body);
+    });
+
+    document.querySelector('#lookupButton').addEventListener('click', lookupFromFields);
+    document.querySelector('#loadChatsButton').addEventListener('click', loadChats);
+    document.querySelector('#createP2pButton').addEventListener('click', createP2pChat);
+    document.querySelector('#actionsForm [name="operation"]').addEventListener('change', updateActionFields);
+    document.querySelector('#refreshButton').addEventListener('click', () => {
+      if (!state.lastLookup) {
+        notify('Сначала выполните поиск или создайте задание');
+        return;
+      }
+      lookup(state.lastLookup.mode, state.lastLookup.value);
+    });
+    document.querySelector('#clearRecent').addEventListener('click', () => {
+      state.recent = [];
+      saveRecent();
+      renderRecent();
+    });
+
+    document.querySelector('[data-fill="message"]').addEventListener('click', () => {
+      const form = document.querySelector('#messageForm');
+      form.elements.externalId.value = `portal-message-${Date.now()}`;
+      form.elements.recipientKind.value = 'CHAT';
+      form.elements.recipientValue.value = 'chat-123';
+      form.elements.text.value = 'Тестовое сообщение из TruconfProxyDB Console';
+    });
+
+    document.querySelector('[data-fill="survey-form"]').addEventListener('click', () => {
+      const form = document.querySelector('#surveyForm');
+      form.elements.operation.value = 'SEND_SURVEY';
+      form.elements.externalId.value = `portal-survey-${Date.now()}`;
+      form.elements.recipientKind.value = 'CHAT';
+      form.elements.recipientValue.value = 'chat-123';
+      form.elements.url.value = 'https://example.local/survey';
+      form.elements.appVersion.value = '1';
+      form.elements.path.value = 'employee_testing';
+      form.elements.title.value = 'Опрос';
+      form.elements.description.value = 'Проверка отправки survey';
+      form.elements.buttonText.value = 'Открыть';
+      form.elements.secret.value = 'demo-secret';
+      form.elements.alt.value = 'Survey';
+    });
+
+    document.querySelector('[data-fill="action-edit"]').addEventListener('click', () => {
+      const form = document.querySelector('#actionsForm');
+      form.elements.operation.value = 'EDIT_MESSAGE';
+      form.elements.externalId.value = `portal-edit-${Date.now()}`;
+      form.elements.recipientKind.value = 'CHAT';
+      form.elements.recipientValue.value = 'chat-123';
+      form.elements.targetMessageId.value = 'message-123';
+      form.elements.text.value = 'Обновленный текст сообщения';
+      updateActionFields();
+    });
+
+    document.querySelector('[data-fill="action-remove"]').addEventListener('click', () => {
+      const form = document.querySelector('#actionsForm');
+      form.elements.operation.value = 'REMOVE_MESSAGE';
+      form.elements.externalId.value = `portal-remove-${Date.now()}`;
+      form.elements.recipientKind.value = 'CHAT';
+      form.elements.recipientValue.value = 'chat-123';
+      form.elements.targetMessageId.value = 'message-123';
+      form.elements.forAll.checked = true;
+      updateActionFields();
+    });
+
+    document.querySelector('[data-fill="survey"]').addEventListener('click', () => {
+      document.querySelector('#advancedForm').elements.payload.value = JSON.stringify({
+        url: 'https://example.local/survey',
+        appVersion: '1',
+        path: '/survey',
+        title: 'Опрос',
+        description: 'Проверка отправки survey',
+        buttonText: 'Открыть',
+        secret: 'demo-secret',
+        alt: 'Survey'
+      }, null, 2);
+    });
+
+    document.querySelector('[data-fill="remove"]').addEventListener('click', () => {
+      const form = document.querySelector('#advancedForm');
+      form.elements.operation.value = 'REMOVE_MESSAGE';
+      form.elements.payload.value = JSON.stringify({ forAll: true }, null, 2);
+    });
+
+    function baseRequest(form, operation, payload) {
+      const body = {
+        operation,
+        recipient: recipient(form),
+        payload
+      };
+      putIfPresent(body, 'externalId', value(form, 'externalId'));
+      putIfPresent(body, 'replyMessageId', value(form, 'replyMessageId'));
+      putNumberIfPresent(body, 'maxAttempts', value(form, 'maxAttempts'));
+      return body;
+    }
+
+    function surveyPayload(form) {
+      return {
+        url: value(form, 'url'),
+        appVersion: value(form, 'appVersion'),
+        path: value(form, 'path'),
+        title: value(form, 'title'),
+        description: value(form, 'description'),
+        buttonText: value(form, 'buttonText'),
+        secret: value(form, 'secret'),
+        alt: value(form, 'alt')
+      };
+    }
+
+    function recipient(form) {
+      const kind = value(form, 'recipientKind');
+      const id = value(form, 'recipientValue');
+      return kind === 'CHAT'
+        ? { kind, chatId: id }
+        : { kind, userId: id };
+    }
+
+    async function createJsonJob(body) {
+      await request('/api/v1/outbox', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+    }
+
+    async function lookupFromFields() {
+      const mode = document.querySelector('#lookupMode').value;
+      const target = document.querySelector('#lookupValue').value.trim();
+      if (!target) {
+        notify('Укажите значение для поиска');
+        return;
+      }
+      await lookup(mode, target);
+    }
+
+    async function lookup(mode, target) {
+      const url = mode === 'id'
+        ? `/api/v1/outbox/${encodeURIComponent(target)}`
+        : `/api/v1/outbox/by-external-id/${encodeURIComponent(target)}`;
+      await request(url, { method: 'GET' }, { lookup: { mode, value: target } });
+    }
+
+    async function loadChats() {
+      const count = document.querySelector('#chatCount').value || '50';
+      const page = document.querySelector('#chatPage').value || '1';
+      await request(
+        `/api/v1/trueconf/chats?count=${encodeURIComponent(count)}&page=${encodeURIComponent(page)}`,
+        { method: 'GET' },
+        { diagnostic: true });
+    }
+
+    async function createP2pChat() {
+      const userId = document.querySelector('#p2pUserId').value.trim();
+      if (!userId) {
+        notify('Укажите P2P userId');
+        return;
+      }
+      await request('/api/v1/trueconf/p2p-chats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId })
+      }, { diagnostic: true });
+    }
+
+    function updateActionFields() {
+      const operation = document.querySelector('#actionsForm [name="operation"]').value;
+      document.querySelectorAll('#actionsForm .action-text').forEach(element => {
+        element.classList.toggle('hidden', operation !== 'EDIT_MESSAGE');
+      });
+      document.querySelectorAll('#actionsForm .action-remove').forEach(element => {
+        element.classList.toggle('hidden', operation !== 'REMOVE_MESSAGE');
+      });
+    }
+
+    async function request(url, options, extra = {}) {
+      const apiKey = apiKeyInput.value.trim() || sessionStorage.getItem('truconf.console.apiKey') || '';
+      if (!apiKey) {
+        notify('Введите X-API-Key');
+        return;
+      }
+      sessionStorage.setItem('truconf.console.apiKey', apiKey);
+
+      const headers = new Headers(options.headers || {});
+      headers.set('X-API-Key', apiKey);
+      const started = performance.now();
+      setOutput('Выполняю запрос...');
+
+      try {
+        const response = await fetch(url, { ...options, headers });
+        const contentType = response.headers.get('content-type') || '';
+        const data = contentType.includes('application/json')
+          ? await response.json()
+          : await response.text();
+        const elapsed = Math.round(performance.now() - started);
+        const result = { httpStatus: response.status, elapsedMs: elapsed, body: data };
+        setOutput(JSON.stringify(result, null, 2));
+
+        if (!response.ok) {
+          setStatus(data?.error?.code || `HTTP_${response.status}`);
+          notify(data?.error?.message || `HTTP ${response.status}`);
+          return;
+        }
+
+        renderJob(data);
+        if (!extra.diagnostic) {
+          remember(data);
+        }
+        if (extra.lookup) {
+          state.lastLookup = extra.lookup;
+        } else if (data.id) {
+          state.lastLookup = { mode: 'id', value: String(data.id) };
+          window.setTimeout(() => lookup('id', data.id), 900);
+        }
+      } catch (error) {
+        setStatus('ERROR');
+        setOutput(error.stack || error.message);
+        notify(error.message);
+      }
+    }
+
+    async function checkHealth() {
+      try {
+        const response = await fetch('/actuator/health');
+        const data = await response.json();
+        document.querySelector('#healthText').textContent = data.status || response.status;
+        document.querySelector('#healthDot').classList.toggle('ok', response.ok);
+      } catch (error) {
+        document.querySelector('#healthText').textContent = 'offline';
+      }
+    }
+
+    function renderJob(data) {
+      if (!data || typeof data !== 'object') {
+        return;
+      }
+      setStatus(data.status || 'OK');
+      if (!data.id) {
+        document.querySelector('#metricId').textContent = '-';
+        document.querySelector('#metricExternal').textContent = '-';
+        document.querySelector('#metricAttempts').textContent = '-';
+        document.querySelector('#metricTrueconf').textContent = chatCount(data);
+        return;
+      }
+      document.querySelector('#metricId').textContent = data.id ?? '-';
+      document.querySelector('#metricExternal').textContent = data.externalId ?? '-';
+      document.querySelector('#metricAttempts').textContent =
+        data.attemptCount === undefined ? '-' : `${data.attemptCount}/${data.maxAttempts}`;
+      document.querySelector('#metricTrueconf').textContent =
+        data.trueconfMessageId || data.trueconfFileId || data.trueconfChatId || '-';
+    }
+
+    function chatCount(data) {
+      const chats = data?.payload?.chats || data?.chats || data?.payload?.items || data?.items;
+      return Array.isArray(chats) ? `${chats.length} chats` : '-';
+    }
+
+    function setStatus(value) {
+      statusPill.textContent = value;
+      statusPill.className = `pill ${value}`;
+    }
+
+    function setOutput(value) {
+      output.textContent = value;
+    }
+
+    function remember(data) {
+      if (!data || !data.id) {
+        return;
+      }
+      state.recent = [
+        { id: data.id, externalId: data.externalId || null, status: data.status || null },
+        ...state.recent.filter(item => item.id !== data.id)
+      ].slice(0, 8);
+      saveRecent();
+      renderRecent();
+    }
+
+    function renderRecent() {
+      recentWrap.innerHTML = '';
+      state.recent.forEach(item => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = `#${item.id}${item.status ? ' ' + item.status : ''}`;
+        button.title = item.externalId || '';
+        button.addEventListener('click', () => lookup('id', item.id));
+        recentWrap.append(button);
+      });
+    }
+
+    function saveRecent() {
+      sessionStorage.setItem('truconf.console.recent', JSON.stringify(state.recent));
+    }
+
+    function notify(message) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      window.clearTimeout(notify.timer);
+      notify.timer = window.setTimeout(() => toast.classList.remove('show'), 2600);
+    }
+
+    function value(form, name) {
+      return String(form.get(name) || '').trim();
+    }
+
+    function putIfPresent(object, key, candidate) {
+      if (candidate !== '') {
+        object[key] = candidate;
+      }
+    }
+
+    function putNumberIfPresent(object, key, candidate) {
+      if (candidate !== '') {
+        object[key] = Number(candidate);
+      }
+    }
+  </script>
+</body>
+</html>

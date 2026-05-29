@@ -1,6 +1,7 @@
 package ru.truconf.proxydb.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -8,6 +9,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.io.IOException;
@@ -163,6 +165,16 @@ class OutboxApiSecurityTests {
     mockMvc.perform(get("/actuator/health"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status", equalTo("UP")));
+  }
+
+  @Test
+  void portalIsAvailableWithoutApiKey() throws Exception {
+    mockMvc.perform(get("/"))
+        .andExpect(status().isOk());
+
+    mockMvc.perform(get("/index.html"))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("TruconfProxyDB Console")));
   }
 
   @Test

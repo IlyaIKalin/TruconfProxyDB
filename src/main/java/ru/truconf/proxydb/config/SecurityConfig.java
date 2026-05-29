@@ -51,6 +51,8 @@ public class SecurityConfig {
             (request, response, authException) ->
                 writeUnauthorized(response, objectMapper)))
         .authorizeHttpRequests(authorize -> authorize
+            .requestMatchers(HttpMethod.GET, "/", "/index.html", "/favicon.ico")
+            .permitAll()
             .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**")
             .permitAll()
             .requestMatchers("/api/v1/**")
