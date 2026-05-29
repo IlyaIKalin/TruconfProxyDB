@@ -166,9 +166,12 @@ public class TrueConfSession implements TrueConfCommandTransport, AutoCloseable 
 
   private void openWebSocket() {
     requestId.set(0);
+    String origin = websocketOrigin(properties.wsUrl());
     try {
       webSocket = httpClient.newWebSocketBuilder()
-          .header("Origin", websocketOrigin(properties.wsUrl()))
+          .header("Origin", origin)
+          .header("User-Agent", "truconf-proxydb")
+          .header("Accept", "*/*")
           .subprotocols("json.v1")
           .buildAsync(URI.create(properties.wsUrl()), new SessionListener())
           .join();
@@ -176,11 +179,11 @@ public class TrueConfSession implements TrueConfCommandTransport, AutoCloseable 
     } catch (RuntimeException ex) {
       failPendingRequests(retryableException(
           "WEBSOCKET_CONNECT_FAILED",
-          websocketConnectFailedMessage(ex),
+          websocketConnectFailedMessage(ex, origin),
           ex));
       throw retryableException(
           "WEBSOCKET_CONNECT_FAILED",
-          websocketConnectFailedMessage(ex),
+          websocketConnectFailedMessage(ex, origin),
           ex);
     }
   }
@@ -382,16 +385,17 @@ public class TrueConfSession implements TrueConfCommandTransport, AutoCloseable 
     return new TrueConfException(code, message, true, cause);
   }
 
-  private static String websocketConnectFailedMessage(Throwable throwable) {
+  private static String websocketConnectFailedMessage(Throwable throwable, String origin) {
     Throwable cause = unwrap(throwable);
     String message = "TrueConf WebSocket connection failed";
     if (cause instanceof WebSocketHandshakeException ex) {
-      return message + ": handshake returned HTTP " + ex.getResponse().statusCode();
+      return message + ": handshake returned HTTP " + ex.getResponse().statusCode()
+          + " for Origin " + origin;
     }
     if (cause != null && cause.getMessage() != null && !cause.getMessage().isBlank()) {
-      return message + ": " + cause.getMessage();
+      return message + ": " + cause.getMessage() + " for Origin " + origin;
     }
-    return message;
+    return message + " for Origin " + origin;
   }
 
   private static Throwable unwrap(Throwable throwable) {

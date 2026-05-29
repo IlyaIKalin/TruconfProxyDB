@@ -93,6 +93,8 @@ class TrueConfSessionTests {
       assertThat(tokenRequest.getPath()).isEqualTo("/bridge/api/client/v1/oauth/token");
       assertThat(websocketRequest.getHeader("Origin"))
           .isEqualTo(server.url("").toString().replaceFirst("/$", ""));
+      assertThat(websocketRequest.getHeader("User-Agent")).isEqualTo("truconf-proxydb");
+      assertThat(websocketRequest.getHeader("Accept")).isEqualTo("*/*");
     }
   }
 
@@ -162,6 +164,7 @@ class TrueConfSessionTests {
           .isInstanceOfSatisfying(TrueConfException.class, ex -> {
             assertThat(ex.code()).isEqualTo("WEBSOCKET_CONNECT_FAILED");
             assertThat(ex.getMessage()).contains("handshake returned HTTP 404");
+            assertThat(ex.getMessage()).contains("for Origin");
             assertThat(ex.retryable()).isTrue();
           });
     }
