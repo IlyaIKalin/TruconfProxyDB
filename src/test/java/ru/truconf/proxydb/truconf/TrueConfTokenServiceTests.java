@@ -48,11 +48,12 @@ class TrueConfTokenServiceTests {
     assertThat(server.getRequestCount()).isEqualTo(2);
     RecordedRequest request = server.takeRequest();
     assertThat(request.getPath()).isEqualTo("/bridge/api/client/v1/oauth/token");
-    assertThat(request.getBody().readUtf8())
-        .contains("grant_type=password")
-        .contains("client_id=bot-client")
-        .contains("username=bot-user")
-        .contains("password=bot-password");
+    assertThat(request.getHeader("Content-Type")).startsWith("application/json");
+    var requestBody = objectMapper.readTree(request.getBody().readUtf8());
+    assertThat(requestBody.get("grant_type").asText()).isEqualTo("password");
+    assertThat(requestBody.get("client_id").asText()).isEqualTo("bot-client");
+    assertThat(requestBody.get("username").asText()).isEqualTo("bot-user");
+    assertThat(requestBody.get("password").asText()).isEqualTo("bot-password");
   }
 
   @Test

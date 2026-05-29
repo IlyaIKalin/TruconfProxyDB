@@ -3,12 +3,11 @@ package ru.truconf.proxydb.truconf;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
 import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
@@ -89,18 +88,18 @@ public class TrueConfTokenService {
   }
 
   private CachedToken requestToken(Instant requestedAt) {
-    MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
-    form.add("grant_type", "password");
-    form.add("client_id", properties.clientId());
-    form.add("username", properties.username());
-    form.add("password", properties.password());
+    Map<String, String> request = Map.of(
+        "grant_type", "password",
+        "client_id", properties.clientId(),
+        "username", properties.username(),
+        "password", properties.password());
 
     try {
       String body = restClient.post()
           .uri(TOKEN_PATH)
-          .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+          .contentType(MediaType.APPLICATION_JSON)
           .accept(MediaType.APPLICATION_JSON)
-          .body(form)
+          .body(request)
           .retrieve()
           .body(String.class);
 
