@@ -61,8 +61,9 @@ class TrueConfTokenServiceTests {
     server = new MockWebServer();
     server.enqueue(new MockResponse()
         .setResponseCode(401)
+        .setHeader("Content-Type", "application/json")
         .setBody("""
-            {"error":"invalid_grant"}
+            {"error":"invalid_grant","error_description":"Invalid username or password"}
             """));
     server.start();
 
@@ -71,6 +72,8 @@ class TrueConfTokenServiceTests {
     assertThatThrownBy(service::getAccessToken)
         .isInstanceOfSatisfying(TrueConfException.class, ex -> {
           assertThat(ex.code()).isEqualTo("OAUTH_HTTP_401");
+          assertThat(ex.getMessage()).contains("Invalid username or password");
+          assertThat(ex.rawResponse().get("error").asText()).isEqualTo("invalid_grant");
           assertThat(ex.retryable()).isFalse();
         });
   }

@@ -120,10 +120,12 @@ public class TrueConfTokenService {
       throw ex;
     } catch (RestClientResponseException ex) {
       boolean retryable = ex.getStatusCode().is5xxServerError();
+      JsonNode errorResponse = errorResponse(ex);
       throw new TrueConfException(
           "OAUTH_HTTP_" + ex.getStatusCode().value(),
-          "TrueConf OAuth endpoint returned HTTP " + ex.getStatusCode().value(),
+          oauthHttpMessage(ex, errorResponse),
           retryable,
+          errorResponse,
           ex);
     } catch (RestClientException ex) {
       throw new TrueConfException(
@@ -167,6 +169,31 @@ public class TrueConfTokenService {
       }
     }
     return null;
+  }
+
+  private String oauthHttpMessage(RestClientResponseException ex, JsonNode errorResponse) {
+    String message = "TrueConf OAuth endpoint returned HTTP " + ex.getStatusCode().value();
+    String error = firstText(errorResponse, "error");
+    String errorDescription = firstText(errorResponse, "error_description", "errorDescription");
+    if (errorDescription != null) {
+      return message + ": " + errorDescription;
+    }
+    if (error != null) {
+      return message + ": " + error;
+    }
+    return message;
+  }
+
+  private JsonNode errorResponse(RestClientResponseException ex) {
+    String body = ex.getResponseBodyAsString();
+    if (body == null || body.isBlank()) {
+      return null;
+    }
+    try {
+      return objectMapper.readTree(body);
+    } catch (Exception ignored) {
+      return null;
+    }
   }
 
   private static Long firstLong(JsonNode root, String... fieldNames) {
