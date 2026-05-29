@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.ConstructorBinding;
 import org.springframework.validation.annotation.Validated;
 
 @Validated
@@ -23,6 +24,10 @@ public record AppProperties(
     @Valid @NotNull Retry retry,
     @Valid @NotNull RateLimit rateLimit,
     @Valid @NotNull Websocket websocket) {
+
+  @ConstructorBinding
+  public AppProperties {
+  }
 
   public AppProperties(
       String httpBaseUrl,
