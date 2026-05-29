@@ -10,7 +10,7 @@
 
 ## Что это
 
-Мы реализуем standalone-сервис на Java 21 и Spring Boot 4.0.5:
+Мы реализуем standalone-сервис на Java 21 и Spring Boot 4.0.6:
 
 - принимает задания через HTTP API или direct insert в PostgreSQL;
 - кладет их в outbox;
@@ -50,7 +50,7 @@ mvn test
 ## Важные технические детали
 
 - Java: 21.
-- Spring Boot parent: `org.springframework.boot:spring-boot-starter-parent:4.0.5`.
+- Spring Boot parent: `org.springframework.boot:spring-boot-starter-parent:4.0.6`.
 - Jackson в Boot 4 используется через `tools.jackson.*`, не `com.fasterxml.jackson.*` в новом коде проекта.
 - Lombok намеренно не добавлялся.
 - PostgreSQL enum-ы реализованы как `text` + `CHECK constraints`.
