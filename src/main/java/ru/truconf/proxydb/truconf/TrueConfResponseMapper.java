@@ -30,10 +30,39 @@ public class TrueConfResponseMapper {
         child(response, "error_description"),
         child(response, "message"));
     if (message == null) {
-      message = "TrueConf error " + code;
+      message = errorMessage(code);
     }
 
     return Optional.of(new TrueConfError(code, message, response));
+  }
+
+  private static String errorMessage(String code) {
+    return switch (code) {
+      case "100" -> "CONNECTION_ERROR: Connection error";
+      case "101" -> "CONNECTION_TIMEOUT: Connection timeout";
+      case "102" -> "TLS_ERROR: TLS/SSL error";
+      case "103" -> "UNSUPPORTED_PROTOCOL: Unsupported protocol";
+      case "104" -> "ROUTE_NOT_FOUND: Route not found";
+      case "200" -> "NOT_AUTHORIZED: Not authorized";
+      case "201" -> "INVALID_CREDENTIALS: Invalid credentials";
+      case "202" -> "USER_DISABLED: User disabled";
+      case "203" -> "CREDENTIALS_EXPIRED: Credentials expired";
+      case "204" -> "UNSUPPORTED_CREDENTIALS: Invalid token type";
+      case "300" -> "INTERNAL_ERROR: Internal server error";
+      case "301" -> "TIMEOUT: Operation timeout";
+      case "302" -> "ACCESS_DENIED: Access denied";
+      case "303" -> "NOT_ENOUGH_RIGHTS: Insufficient rights";
+      case "304" -> "CHAT_NOT_FOUND: Chat not found";
+      case "305" -> "USER_IS_NOT_CHAT_PARTICIPANT: User is not a chat participant";
+      case "306" -> "MESSAGE_NOT_FOUND: Message not found";
+      case "307" -> "UNKNOWN_MESSAGE: Unknown message";
+      case "308" -> "FILE_NOT_FOUND: File not found";
+      case "309" -> "USER_IS_ALREADY_CHAT_PARTICIPANT: User is already a chat participant";
+      case "310" -> "FILE_UPLOAD_FAILED: File upload error";
+      case "311" -> "FILE_NOT_READY: File is not ready yet";
+      case "312" -> "ROLE_NOT_FOUND: Role not found";
+      default -> "TrueConf error " + code;
+    };
   }
 
   public TrueConfResponse mapSuccess(JsonNode response) {

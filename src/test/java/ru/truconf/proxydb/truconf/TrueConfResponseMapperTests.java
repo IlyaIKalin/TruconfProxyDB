@@ -55,14 +55,14 @@ class TrueConfResponseMapperTests {
           "type": 2,
           "id": 1,
           "payload": {
-            "errorCode": 203
+            "errorCode": 201
           }
         }
         """)).orElseThrow();
 
-    assertThat(websocketError.code()).isEqualTo("203");
-    assertThat(websocketError.message()).isEqualTo("TrueConf error 203");
-    assertThat(classifier.isRetryable(websocketError)).isTrue();
+    assertThat(websocketError.code()).isEqualTo("201");
+    assertThat(websocketError.message()).isEqualTo("INVALID_CREDENTIALS: Invalid credentials");
+    assertThat(classifier.isRetryable(websocketError)).isFalse();
 
     TrueConfError httpError = mapper.extractError(objectMapper.readTree("""
         {
