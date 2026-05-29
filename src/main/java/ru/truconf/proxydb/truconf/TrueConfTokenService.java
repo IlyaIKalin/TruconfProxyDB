@@ -81,6 +81,7 @@ public class TrueConfTokenService {
   private CachedToken requestToken(Instant requestedAt) {
     MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
     form.add("grant_type", "password");
+    form.add("client_id", properties.clientId());
     form.add("username", properties.username());
     form.add("password", properties.password());
 

@@ -212,6 +212,7 @@ class TrueConfSessionTests {
     return new AppProperties(
         server.url("").toString(),
         server.url("/websocket/chat_bot/").toString().replace("http://", "ws://"),
+        "bot-client",
         "bot-user",
         "bot-password",
         "api-key",

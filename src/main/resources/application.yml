@@ -28,6 +28,7 @@ management:
 truconf:
   http-base-url: ${TRUCONF_HTTP_BASE_URL:https://trueconf.example.local}
   ws-url: ${TRUCONF_WS_URL:wss://trueconf.example.local/websocket/chat_bot/}
+  client-id: ${TRUCONF_CLIENT_ID:change-me}
   username: ${TRUCONF_USERNAME:bot-user}
   password: ${TRUCONF_PASSWORD:change-me}
   proxy-api-key: ${TRUCONF_PROXY_API_KEY:change-me}

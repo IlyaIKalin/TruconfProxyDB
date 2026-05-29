@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.time.Duration;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClient;
@@ -45,8 +46,13 @@ class TrueConfTokenServiceTests {
 
     assertThat(service.getAccessToken()).isEqualTo("token-2");
     assertThat(server.getRequestCount()).isEqualTo(2);
-    assertThat(server.takeRequest().getPath())
-        .isEqualTo("/bridge/api/client/v1/oauth/token");
+    RecordedRequest request = server.takeRequest();
+    assertThat(request.getPath()).isEqualTo("/bridge/api/client/v1/oauth/token");
+    assertThat(request.getBody().readUtf8())
+        .contains("grant_type=password")
+        .contains("client_id=bot-client")
+        .contains("username=bot-user")
+        .contains("password=bot-password");
   }
 
   @Test
@@ -88,6 +94,7 @@ class TrueConfTokenServiceTests {
     return new AppProperties(
         httpBaseUrl,
         wsUrl,
+        "bot-client",
         "bot-user",
         "bot-password",
         "api-key",

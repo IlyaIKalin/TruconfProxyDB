@@ -92,6 +92,7 @@ TrueConf, OAuth-токены и пароли к базе данных.
 | `SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE` | `110MB` | Максимальный размер multipart-запроса. |
 | `TRUCONF_HTTP_BASE_URL` | `https://trueconf.example.local` | Базовый HTTP URL TrueConf. |
 | `TRUCONF_WS_URL` | `wss://trueconf.example.local/websocket/chat_bot/` | WebSocket URL бота TrueConf. |
+| `TRUCONF_CLIENT_ID` | `change-me` | OAuth client id, выданный TrueConf. |
 | `TRUCONF_USERNAME` | `bot-user` | Имя пользователя бота TrueConf. |
 | `TRUCONF_PASSWORD` | `change-me` | Пароль бота TrueConf. |
 | `TRUCONF_PROXY_API_KEY` | `change-me` | Обязательное значение `X-API-Key` для `/api/v1/**`. |
@@ -319,8 +320,9 @@ limit 10;
 
 - Не открывайте `/api/v1/**` для недоверенных сетей без дополнительной защиты
   на edge: mTLS, VPN, allow lists в reverse proxy или правил WAF.
-- Ротируйте `TRUCONF_PROXY_API_KEY`, `TRUCONF_PASSWORD` и пароли к базе данных,
-  если они попали за пределы runtime-окружения.
+- Ротируйте `TRUCONF_PROXY_API_KEY`, `TRUCONF_CLIENT_ID`,
+  `TRUCONF_PASSWORD` и пароли к базе данных, если они попали за пределы
+  runtime-окружения.
 - Системы удалённой конфигурации должны хранить секреты в зашифрованном виде и
   не печатать разрешённые значения свойств в логах или диагностике.
 - Логи приложения должны содержать только id заданий и операционные ошибки. Не

@@ -32,6 +32,7 @@ services:
       SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE: ${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE:-110MB}
       TRUCONF_HTTP_BASE_URL: ${TRUCONF_HTTP_BASE_URL:-https://trueconf.example.local}
       TRUCONF_WS_URL: ${TRUCONF_WS_URL:-wss://trueconf.example.local/websocket/chat_bot/}
+      TRUCONF_CLIENT_ID: ${TRUCONF_CLIENT_ID:-change-me}
       TRUCONF_USERNAME: ${TRUCONF_USERNAME:-bot-user}
       TRUCONF_PASSWORD: ${TRUCONF_PASSWORD:-change-me}
       TRUCONF_PROXY_API_KEY: ${TRUCONF_PROXY_API_KEY:-change-me}

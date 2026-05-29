@@ -13,6 +13,7 @@ import org.springframework.validation.annotation.Validated;
 public record AppProperties(
     @NotBlank String httpBaseUrl,
     @NotBlank String wsUrl,
+    @NotBlank String clientId,
     @NotBlank String username,
     @NotBlank String password,
     @NotBlank String proxyApiKey,
