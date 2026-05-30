@@ -1141,10 +1141,11 @@
           return;
         }
 
-        renderJob(data);
-        if (!extra.diagnostic) {
-          remember(data);
+        renderJob(data, extra);
+        if (extra.diagnostic) {
+          return;
         }
+        remember(data);
         if (extra.lookup) {
           state.lastLookup = extra.lookup;
         } else if (data.id) {
@@ -1169,8 +1170,16 @@
       }
     }
 
-    function renderJob(data) {
+    function renderJob(data, extra = {}) {
       if (!data || typeof data !== 'object') {
+        return;
+      }
+      if (extra.diagnostic) {
+        setStatus('OK');
+        document.querySelector('#metricId').textContent = '-';
+        document.querySelector('#metricExternal').textContent = '-';
+        document.querySelector('#metricAttempts').textContent = '-';
+        document.querySelector('#metricTrueconf').textContent = chatCount(data);
         return;
       }
       setStatus(data.status || 'OK');
