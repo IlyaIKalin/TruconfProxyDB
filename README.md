@@ -52,6 +52,16 @@ http://localhost:8080/
 требуют `X-API-Key`; ключ вводится в UI и хранится только в `sessionStorage`
 текущей вкладки браузера.
 
+Если сервис публикуется не от корня домена, задайте servlet context path.
+Например, для публикации под `https://bis.rt.ru/tconf/` установите:
+
+```bash
+SERVER_SERVLET_CONTEXT_PATH=/tconf
+```
+
+В этом режиме портал будет доступен по `/tconf/`, API по
+`/tconf/api/v1/**`, а health endpoints по `/tconf/actuator/health`.
+
 В портале есть формы для всех HTTP-сценариев сервиса: отправка сообщения,
 файла, survey, редактирование, удаление, forward, проверка статуса, список
 чатов и прямой диагностический `createP2PChat`.
@@ -84,6 +94,7 @@ TrueConf, OAuth-токены и пароли к базе данных.
 | `POSTGRES_PASSWORD` | `change-me` | Пароль PostgreSQL в Compose. |
 | `POSTGRES_PORT` | `15432` | Порт PostgreSQL на хосте для direct insert и отладки. |
 | `SERVER_PORT` | `8080` | HTTP-порт внутри контейнера приложения и на хосте. |
+| `SERVER_SERVLET_CONTEXT_PATH` | пусто, пример `/tconf` | Servlet context path для публикации приложения под path prefix. |
 | `SPRING_DATASOURCE_URL` | собирается в `docker-compose.yml` | JDBC URL. |
 | `SPRING_DATASOURCE_USERNAME` | `${POSTGRES_USER}` | Имя пользователя JDBC. |
 | `SPRING_DATASOURCE_PASSWORD` | `${POSTGRES_PASSWORD}` | Пароль JDBC. |
@@ -115,6 +126,27 @@ TrueConf, OAuth-токены и пароли к базе данных.
 Держите `TRUCONF_WEBSOCKET_REQUEST_TIMEOUT` меньше
 `TRUCONF_DISPATCHER_LOCK_TIMEOUT`, иначе worker может работать дольше, чем
 действует его DB lock.
+
+### Nginx под `/tconf`
+
+Если приложение запущено с `SERVER_SERVLET_CONTEXT_PATH=/tconf`, upstream
+должен получать URI с тем же префиксом:
+
+```nginx
+location = /tconf {
+    return 301 /tconf/;
+}
+
+location /tconf/ {
+    proxy_pass http://dev.bis.rt.ru:38085/tconf/;
+
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
 
 ## HTTP API
 

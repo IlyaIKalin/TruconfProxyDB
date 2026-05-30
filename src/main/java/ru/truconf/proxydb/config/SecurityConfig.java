@@ -90,7 +90,18 @@ public class SecurityConfig {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-      return !request.getRequestURI().startsWith("/api/v1/");
+      return !servletRelativePath(request).startsWith("/api/v1/");
+    }
+
+    private static String servletRelativePath(HttpServletRequest request) {
+      String requestUri = request.getRequestURI();
+      String contextPath = request.getContextPath();
+      if (contextPath != null
+          && !contextPath.isBlank()
+          && requestUri.startsWith(contextPath)) {
+        return requestUri.substring(contextPath.length());
+      }
+      return requestUri;
     }
 
     @Override

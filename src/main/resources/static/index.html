@@ -839,6 +839,8 @@
     const statusPill = document.querySelector('#statusPill');
     const toast = document.querySelector('#toast');
     const recentWrap = document.querySelector('#recent');
+    const basePath = detectBasePath();
+    const apiBase = `${basePath}/api/v1`;
     const state = {
       lastLookup: null,
       recent: JSON.parse(sessionStorage.getItem('truconf.console.recent') || '[]')
@@ -895,7 +897,7 @@
         multipart.append('preview', preview);
       }
 
-      await request('/api/v1/outbox/files', {
+      await request(`${apiBase}/outbox/files`, {
         method: 'POST',
         body: multipart
       });
@@ -1056,7 +1058,7 @@
     }
 
     async function createJsonJob(body) {
-      await request('/api/v1/outbox', {
+      await request(`${apiBase}/outbox`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -1075,8 +1077,8 @@
 
     async function lookup(mode, target) {
       const url = mode === 'id'
-        ? `/api/v1/outbox/${encodeURIComponent(target)}`
-        : `/api/v1/outbox/by-external-id/${encodeURIComponent(target)}`;
+        ? `${apiBase}/outbox/${encodeURIComponent(target)}`
+        : `${apiBase}/outbox/by-external-id/${encodeURIComponent(target)}`;
       await request(url, { method: 'GET' }, { lookup: { mode, value: target } });
     }
 
@@ -1084,7 +1086,7 @@
       const count = document.querySelector('#chatCount').value || '50';
       const page = document.querySelector('#chatPage').value || '1';
       await request(
-        `/api/v1/trueconf/chats?count=${encodeURIComponent(count)}&page=${encodeURIComponent(page)}`,
+        `${apiBase}/trueconf/chats?count=${encodeURIComponent(count)}&page=${encodeURIComponent(page)}`,
         { method: 'GET' },
         { diagnostic: true });
     }
@@ -1095,11 +1097,25 @@
         notify('Укажите P2P userId');
         return;
       }
-      await request('/api/v1/trueconf/p2p-chats', {
+      await request(`${apiBase}/trueconf/p2p-chats`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId })
       }, { diagnostic: true });
+    }
+
+    function detectBasePath() {
+      const pathname = window.location.pathname;
+      if (pathname === '/' || pathname === '/index.html') {
+        return '';
+      }
+      if (pathname.endsWith('/index.html')) {
+        return pathname.slice(0, -'/index.html'.length);
+      }
+      if (pathname.endsWith('/')) {
+        return pathname.slice(0, -1);
+      }
+      return pathname;
     }
 
     function updateActionFields() {
@@ -1161,7 +1177,7 @@
 
     async function checkHealth() {
       try {
-        const response = await fetch('/actuator/health');
+        const response = await fetch(`${basePath}/actuator/health`);
         const data = await response.json();
         document.querySelector('#healthText').textContent = data.status || response.status;
         document.querySelector('#healthDot').classList.toggle('ok', response.ok);

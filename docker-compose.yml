@@ -24,6 +24,7 @@ services:
         condition: service_healthy
     environment:
       SERVER_PORT: ${SERVER_PORT:-8080}
+      SERVER_SERVLET_CONTEXT_PATH: ${SERVER_SERVLET_CONTEXT_PATH:-}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-truconf_proxydb}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-truconf_proxydb}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
@@ -56,7 +57,7 @@ services:
     volumes:
       - app-files:/var/lib/truconf-proxydb/files
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS \"http://localhost:$${SERVER_PORT:-8080}/actuator/health/readiness\" >/dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS \"http://localhost:$${SERVER_PORT:-8080}$${SERVER_SERVLET_CONTEXT_PATH:-}/actuator/health/readiness\" >/dev/null || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 30
