@@ -31,7 +31,9 @@ class AppPropertiesTests {
         Map.entry("truconf.rate-limit.commands-per-second", "10"),
         Map.entry("truconf.websocket.request-timeout", "250ms"),
         Map.entry("truconf.websocket.connect-timeout", "2s"),
-        Map.entry("truconf.websocket.reconnect-delay", "100ms"))))
+        Map.entry("truconf.websocket.reconnect-delay", "100ms"),
+        Map.entry("truconf.server-api.page-size", "100"),
+        Map.entry("truconf.server-api.max-scan-pages", "20"))))
         .bind("truconf", Bindable.of(AppProperties.class))
         .orElseThrow(() -> new IllegalStateException("truconf properties were not bound"));
 

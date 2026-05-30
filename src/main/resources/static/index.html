@@ -480,6 +480,7 @@
           <button class="tab active" type="button" data-tab="message">Сообщение</button>
           <button class="tab" type="button" data-tab="file">Файл</button>
           <button class="tab" type="button" data-tab="chats">Чаты</button>
+          <button class="tab" type="button" data-tab="users">Пользователи</button>
           <button class="tab" type="button" data-tab="survey">Опросы</button>
           <button class="tab" type="button" data-tab="actions">Действия</button>
           <button class="tab" type="button" data-tab="advanced">JSON</button>
@@ -812,6 +813,25 @@
           </div>
           <div id="recent" class="recent"></div>
         </div>
+
+        <div class="panel-body form-tab hidden" data-panel="users">
+          <div class="lookup">
+            <div>
+              <label for="userQuery">ФИО, login или ID</label>
+              <input id="userQuery" placeholder="Иванов">
+            </div>
+            <div>
+              <label for="userLimit">Limit</label>
+              <input id="userLimit" type="number" min="1" max="100" value="20">
+            </div>
+            <button id="searchUsersButton" class="btn" type="button">Найти</button>
+          </div>
+          <div class="actions">
+            <button id="useFirstUserButton" class="btn secondary" type="button">
+              Подставить первого в USER
+            </button>
+          </div>
+        </div>
       </div>
 
       <div class="result-panel">
@@ -844,6 +864,7 @@
     const apiBase = `${basePath}/api/v1`;
     const state = {
       lastLookup: null,
+      lastUsers: [],
       recent: JSON.parse(sessionStorage.getItem('truconf.console.recent') || '[]')
     };
 
@@ -946,6 +967,8 @@
     document.querySelector('#lookupButton').addEventListener('click', lookupFromFields);
     document.querySelector('#loadChatsButton').addEventListener('click', loadChats);
     document.querySelector('#createP2pButton').addEventListener('click', createP2pChat);
+    document.querySelector('#searchUsersButton').addEventListener('click', searchUsers);
+    document.querySelector('#useFirstUserButton').addEventListener('click', useFirstUser);
     document.querySelector('#actionsForm [name="operation"]').addEventListener('change', updateActionFields);
     document.querySelector('#refreshButton').addEventListener('click', () => {
       if (!state.lastLookup) {
@@ -1115,6 +1138,31 @@
       }, { diagnostic: true });
     }
 
+    async function searchUsers() {
+      const query = document.querySelector('#userQuery').value.trim();
+      const limit = document.querySelector('#userLimit').value || '20';
+      if (!query) {
+        notify('Укажите ФИО, login или TrueConf ID');
+        return;
+      }
+      await request(
+        `${apiBase}/trueconf/users/search?query=${encodeURIComponent(query)}&limit=${encodeURIComponent(limit)}`,
+        { method: 'GET' },
+        { users: true });
+    }
+
+    function useFirstUser() {
+      const firstUser = state.lastUsers[0];
+      if (!firstUser?.trueconfId) {
+        notify('Сначала найдите пользователя с trueconfId');
+        return;
+      }
+      const form = document.querySelector('#messageForm');
+      form.elements.recipientKind.value = 'USER';
+      form.elements.recipientValue.value = firstUser.trueconfId;
+      notify(`Подставлен ${firstUser.trueconfId}`);
+    }
+
     function detectBasePath() {
       const pathname = window.location.pathname;
       if (pathname === '/' || pathname === '/index.html') {
@@ -1172,6 +1220,10 @@
         if (extra.diagnostic) {
           return;
         }
+        if (extra.users) {
+          state.lastUsers = Array.isArray(data.users) ? data.users : [];
+          return;
+        }
         remember(data);
         if (extra.lookup) {
           state.lastLookup = extra.lookup;
@@ -1209,6 +1261,14 @@
         document.querySelector('#metricTrueconf').textContent = chatCount(data);
         return;
       }
+      if (extra.users) {
+        setStatus('OK');
+        document.querySelector('#metricId').textContent = '-';
+        document.querySelector('#metricExternal').textContent = data.scannedAccounts ?? '-';
+        document.querySelector('#metricAttempts').textContent = data.scannedPages ?? '-';
+        document.querySelector('#metricTrueconf').textContent = userCount(data);
+        return;
+      }
       setStatus(data.status || 'OK');
       if (!data.id) {
         document.querySelector('#metricId').textContent = '-';
@@ -1228,6 +1288,10 @@
     function chatCount(data) {
       const chats = data?.payload?.chats || data?.chats || data?.payload?.items || data?.items;
       return Array.isArray(chats) ? `${chats.length} chats` : '-';
+    }
+
+    function userCount(data) {
+      return Array.isArray(data?.users) ? `${data.users.length} users` : '-';
     }
 
     function setStatus(value) {

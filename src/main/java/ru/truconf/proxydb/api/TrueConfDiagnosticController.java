@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.truconf.proxydb.truconf.TrueConfClient;
+import ru.truconf.proxydb.truconf.TrueConfServerApiClient;
+import ru.truconf.proxydb.truconf.TrueConfServerApiClient.UserSearchResponse;
 import tools.jackson.databind.JsonNode;
 
 @Validated
@@ -20,9 +22,13 @@ import tools.jackson.databind.JsonNode;
 public class TrueConfDiagnosticController {
 
   private final TrueConfClient trueConfClient;
+  private final TrueConfServerApiClient trueConfServerApiClient;
 
-  public TrueConfDiagnosticController(TrueConfClient trueConfClient) {
+  public TrueConfDiagnosticController(
+      TrueConfClient trueConfClient,
+      TrueConfServerApiClient trueConfServerApiClient) {
     this.trueConfClient = trueConfClient;
+    this.trueConfServerApiClient = trueConfServerApiClient;
   }
 
   @GetMapping("/chats")
@@ -35,6 +41,13 @@ public class TrueConfDiagnosticController {
   @PostMapping("/p2p-chats")
   public JsonNode createP2PChat(@RequestBody @Valid CreateP2PChatRequest request) {
     return trueConfClient.createP2PChat(request.userId()).rawResponse();
+  }
+
+  @GetMapping("/users/search")
+  public UserSearchResponse searchUsers(
+      @RequestParam @NotBlank String query,
+      @RequestParam(defaultValue = "20") @Min(1) @Max(100) int limit) {
+    return trueConfServerApiClient.searchAccounts(query, limit);
   }
 
   public record CreateP2PChatRequest(@NotBlank String userId) {

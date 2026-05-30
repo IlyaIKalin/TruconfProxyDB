@@ -28,8 +28,8 @@ management:
         include: health,info,metrics,prometheus
 
 truconf:
-  http-base-url: ${TRUCONF_HTTP_BASE_URL:https://trueconf.example.local}
-  ws-url: ${TRUCONF_WS_URL:wss://trueconf.example.local/websocket/chat_bot/}
+  http-base-url: ${TRUCONF_HTTP_BASE_URL:https://s13.trueconf.rt.ru}
+  ws-url: ${TRUCONF_WS_URL:wss://s13.trueconf.rt.ru/websocket/chat_bot/}
   client-id: ${TRUCONF_CLIENT_ID:change-me}
   username: ${TRUCONF_USERNAME:bot-user}
   password: ${TRUCONF_PASSWORD:change-me}
@@ -53,3 +53,6 @@ truconf:
     request-timeout: ${TRUCONF_WEBSOCKET_REQUEST_TIMEOUT:30s}
     connect-timeout: ${TRUCONF_WEBSOCKET_CONNECT_TIMEOUT:10s}
     reconnect-delay: ${TRUCONF_WEBSOCKET_RECONNECT_DELAY:5s}
+  server-api:
+    page-size: ${TRUCONF_SERVER_API_PAGE_SIZE:100}
+    max-scan-pages: ${TRUCONF_SERVER_API_MAX_SCAN_PAGES:20}

@@ -23,7 +23,8 @@ public record AppProperties(
     @Valid @NotNull Dispatcher dispatcher,
     @Valid @NotNull Retry retry,
     @Valid @NotNull RateLimit rateLimit,
-    @Valid @NotNull Websocket websocket) {
+    @Valid @NotNull Websocket websocket,
+    @Valid @NotNull ServerApi serverApi) {
 
   @ConstructorBinding
   public AppProperties {
@@ -53,7 +54,37 @@ public record AppProperties(
         dispatcher,
         retry,
         rateLimit,
-        websocket);
+        websocket,
+        defaultServerApi());
+  }
+
+  public AppProperties(
+      String httpBaseUrl,
+      String wsUrl,
+      String clientId,
+      String username,
+      String password,
+      String proxyApiKey,
+      String fileStorageDir,
+      boolean tlsInsecureSkipVerify,
+      Dispatcher dispatcher,
+      Retry retry,
+      RateLimit rateLimit,
+      Websocket websocket) {
+    this(
+        httpBaseUrl,
+        wsUrl,
+        clientId,
+        username,
+        password,
+        proxyApiKey,
+        fileStorageDir,
+        tlsInsecureSkipVerify,
+        dispatcher,
+        retry,
+        rateLimit,
+        websocket,
+        defaultServerApi());
   }
 
   public record Dispatcher(
@@ -78,5 +109,14 @@ public record AppProperties(
       @NotNull Duration requestTimeout,
       @NotNull Duration connectTimeout,
       @NotNull Duration reconnectDelay) {
+  }
+
+  public record ServerApi(
+      @Min(1) int pageSize,
+      @Min(1) int maxScanPages) {
+  }
+
+  private static ServerApi defaultServerApi() {
+    return new ServerApi(100, 20);
   }
 }

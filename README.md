@@ -101,11 +101,13 @@ TrueConf, OAuth-токены и пароли к базе данных.
 | `SPRING_FLYWAY_ENABLED` | `true` | Включает миграции БД при старте. |
 | `SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE` | `100MB` | Максимальный размер загружаемого файла. |
 | `SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE` | `110MB` | Максимальный размер multipart-запроса. |
-| `TRUCONF_HTTP_BASE_URL` | `https://trueconf.example.local` | Базовый HTTP URL TrueConf. |
-| `TRUCONF_WS_URL` | `wss://trueconf.example.local/websocket/chat_bot/` | WebSocket URL бота TrueConf. |
+| `TRUCONF_HTTP_BASE_URL` | `https://s13.trueconf.rt.ru` | Базовый HTTP URL TrueConf. |
+| `TRUCONF_WS_URL` | `wss://s13.trueconf.rt.ru/websocket/chat_bot/` | WebSocket URL бота TrueConf. |
 | `TRUCONF_CLIENT_ID` | `change-me` | OAuth client id, выданный TrueConf. |
 | `TRUCONF_USERNAME` | `bot-user` | Имя пользователя бота TrueConf. |
 | `TRUCONF_PASSWORD` | `change-me` | Пароль бота TrueConf. |
+| `TRUCONF_SERVER_API_PAGE_SIZE` | `100` | Размер страницы при сканировании `/api/v4/accounts`. |
+| `TRUCONF_SERVER_API_MAX_SCAN_PAGES` | `20` | Максимум страниц `/api/v4/accounts`, которые прокси просматривает за один поиск. |
 | `TRUCONF_PROXY_API_KEY` | `change-me` | Обязательное значение `X-API-Key` для `/api/v1/**`. |
 | `TRUCONF_FILE_STORAGE_DIR` | `/var/lib/truconf-proxydb/files` | Корневой каталог для сохранённых файлов. |
 | `TRUCONF_TLS_INSECURE_SKIP_VERIFY` | `false` | Отключает проверку TLS-сертификатов только для исходящих клиентов TrueConf. Используйте только как временный workaround для стендов с некорректной цепочкой сертификатов. |
@@ -211,6 +213,18 @@ curl -s http://localhost:8080/api/v1/outbox/by-external-id/demo-message-1 \
 curl -s http://localhost:8080/api/v1/outbox/by-trueconf-message-id/306a64ad-3bc7-4504-b3b9-e6f2a72550ca \
   -H "X-API-Key: ${API_KEY}"
 ```
+
+Найти пользователя для отправки P2P-сообщения:
+
+```bash
+curl -s "http://localhost:8080/api/v1/trueconf/users/search?query=Иванов&limit=20" \
+  -H "X-API-Key: ${API_KEY}"
+```
+
+Ответ содержит `trueconfId`; его нужно использовать как `recipient.userId` для
+`recipient.kind = USER`. Поиск использует TrueConf Server API v4 `/api/v4/accounts`
+на `TRUCONF_HTTP_BASE_URL` с OAuth-токеном бота и локально фильтрует поля `id`,
+`login`, `domain`, `displayName`, `type`, `trueconfId`.
 
 Операции:
 
