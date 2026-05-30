@@ -73,6 +73,16 @@ public class OutboxService {
             "Outbox job not found for externalId: " + externalId));
   }
 
+  @Transactional(readOnly = true)
+  public OutboxJob getByTrueconfMessageId(String trueconfMessageId) {
+    if (trueconfMessageId == null || trueconfMessageId.isBlank()) {
+      throw new IllegalArgumentException("trueconfMessageId must not be blank");
+    }
+    return repository.findByTrueconfMessageId(trueconfMessageId)
+        .orElseThrow(() -> new OutboxJobNotFoundException(
+            "Outbox job not found for trueconfMessageId: " + trueconfMessageId));
+  }
+
   private EnqueuedOutboxJob createIdempotently(CreateOutboxJobCommand command) {
     try {
       return new EnqueuedOutboxJob(repository.create(command), true);

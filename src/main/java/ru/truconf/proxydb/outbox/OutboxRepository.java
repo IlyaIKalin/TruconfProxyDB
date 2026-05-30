@@ -75,6 +75,13 @@ public class OutboxRepository {
     return queryOptional("select * from truconf_outbox where external_id = ?", externalId);
   }
 
+  public Optional<OutboxJob> findByTrueconfMessageId(String trueconfMessageId) {
+    Objects.requireNonNull(trueconfMessageId, "trueconfMessageId must not be null");
+    return queryOptional(
+        "select * from truconf_outbox where trueconf_message_id = ?",
+        trueconfMessageId);
+  }
+
   public OutboxFile createFile(CreateOutboxFileCommand command) {
     Objects.requireNonNull(command, "command must not be null");
 

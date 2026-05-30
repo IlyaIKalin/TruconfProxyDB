@@ -207,6 +207,9 @@ curl -s http://localhost:8080/api/v1/outbox/1 \
 
 curl -s http://localhost:8080/api/v1/outbox/by-external-id/demo-message-1 \
   -H "X-API-Key: ${API_KEY}"
+
+curl -s http://localhost:8080/api/v1/outbox/by-trueconf-message-id/306a64ad-3bc7-4504-b3b9-e6f2a72550ca \
+  -H "X-API-Key: ${API_KEY}"
 ```
 
 Операции:

@@ -202,6 +202,28 @@ class OutboxApiSecurityTests {
   }
 
   @Test
+  void lookupByTrueconfMessageIdReturnsJobStatus() throws Exception {
+    OutboxJob created = createJob("crm-api-trueconf-message-lookup-1");
+    jdbc.update("""
+        update truconf_outbox
+        set trueconf_message_id = ?
+        where id = ?
+        """,
+        "306a64ad-3bc7-4504-b3b9-e6f2a72550ca",
+        created.id());
+
+    mockMvc.perform(get(
+            "/api/v1/outbox/by-trueconf-message-id/{trueconfMessageId}",
+            "306a64ad-3bc7-4504-b3b9-e6f2a72550ca")
+            .header(API_KEY_HEADER, "test-api-key"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id", equalTo((int) created.id())))
+        .andExpect(jsonPath("$.externalId", equalTo("crm-api-trueconf-message-lookup-1")))
+        .andExpect(jsonPath("$.trueconfMessageId",
+            equalTo("306a64ad-3bc7-4504-b3b9-e6f2a72550ca")));
+  }
+
+  @Test
   void missingJobReturns404() throws Exception {
     mockMvc.perform(get("/api/v1/outbox/{id}", 9_999)
             .header(API_KEY_HEADER, "test-api-key"))

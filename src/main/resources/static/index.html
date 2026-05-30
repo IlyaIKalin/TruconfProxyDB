@@ -797,6 +797,7 @@
               <select id="lookupMode">
                 <option value="id">ID</option>
                 <option value="external">External ID</option>
+                <option value="trueconfMessage">TrueConf Message ID</option>
               </select>
             </div>
             <div>
@@ -1076,9 +1077,19 @@
     }
 
     async function lookup(mode, target) {
-      const url = mode === 'id'
-        ? `${apiBase}/outbox/${encodeURIComponent(target)}`
-        : `${apiBase}/outbox/by-external-id/${encodeURIComponent(target)}`;
+      const encodedTarget = encodeURIComponent(target);
+      let url;
+      if (mode === 'id') {
+        if (!/^\d+$/.test(target)) {
+          notify('ID задания - это число. Для UUID сообщения выберите TrueConf Message ID');
+          return;
+        }
+        url = `${apiBase}/outbox/${encodedTarget}`;
+      } else if (mode === 'trueconfMessage') {
+        url = `${apiBase}/outbox/by-trueconf-message-id/${encodedTarget}`;
+      } else {
+        url = `${apiBase}/outbox/by-external-id/${encodedTarget}`;
+      }
       await request(url, { method: 'GET' }, { lookup: { mode, value: target } });
     }
 

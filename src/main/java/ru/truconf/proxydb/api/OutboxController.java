@@ -82,6 +82,11 @@ public class OutboxController {
     return toStatusResponse(service.getByExternalId(externalId));
   }
 
+  @GetMapping("/by-trueconf-message-id/{trueconfMessageId}")
+  public OutboxStatusResponse getByTrueconfMessageId(@PathVariable String trueconfMessageId) {
+    return toStatusResponse(service.getByTrueconfMessageId(trueconfMessageId));
+  }
+
   private CreateOutboxJobCommand toCommand(CreateOutboxRequest request) {
     return new CreateOutboxJobCommand(
         normalizeBlank(request.externalId()),
