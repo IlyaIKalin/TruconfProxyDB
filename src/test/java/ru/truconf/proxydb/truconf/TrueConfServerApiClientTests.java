@@ -65,7 +65,7 @@ class TrueConfServerApiClientTests {
         """));
     server.start();
 
-    TrueConfTokenService tokenService = mock(TrueConfTokenService.class);
+    TrueConfServerApiTokenService tokenService = mock(TrueConfServerApiTokenService.class);
     when(tokenService.getAccessToken()).thenReturn("oauth-token");
     TrueConfServerApiClient client = client(tokenService, 2, 10);
 
@@ -85,7 +85,7 @@ class TrueConfServerApiClientTests {
   }
 
   private TrueConfServerApiClient client(
-      TrueConfTokenService tokenService,
+      TrueConfServerApiTokenService tokenService,
       int pageSize,
       int maxScanPages) {
     AppProperties properties = new AppProperties(
@@ -104,7 +104,15 @@ class TrueConfServerApiClientTests {
             Duration.ofMillis(250),
             Duration.ofSeconds(2),
             Duration.ofMillis(100)),
-        new AppProperties.ServerApi(pageSize, maxScanPages));
+        new AppProperties.ServerApi(
+            server.url("").toString(),
+            "server-api-client",
+            "server-api-secret",
+            "client_credentials",
+            "",
+            "",
+            pageSize,
+            maxScanPages));
     return new TrueConfServerApiClient(
         properties,
         tokenService,

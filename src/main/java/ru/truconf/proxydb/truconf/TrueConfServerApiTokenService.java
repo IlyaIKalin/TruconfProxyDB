@@ -3,6 +3,7 @@ package ru.truconf.proxydb.truconf;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,9 +17,9 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 @Service
-public class TrueConfTokenService {
+public class TrueConfServerApiTokenService {
 
-  private static final String TOKEN_PATH = "/bridge/api/client/v1/oauth/token";
+  private static final String TOKEN_PATH = "/oauth2/v1/token";
   private static final Duration DEFAULT_REFRESH_MARGIN = Duration.ofSeconds(30);
   private static final Duration DEFAULT_EXPIRES_IN = Duration.ofHours(1);
 
@@ -31,7 +32,7 @@ public class TrueConfTokenService {
   private volatile CachedToken cachedToken;
 
   @Autowired
-  public TrueConfTokenService(
+  public TrueConfServerApiTokenService(
       AppProperties properties,
       RestClient.Builder restClientBuilder,
       TrueConfHttpClientFactory httpClientFactory,
@@ -39,20 +40,13 @@ public class TrueConfTokenService {
     this(
         properties,
         httpClientFactory.configure(restClientBuilder)
-            .baseUrl(stripTrailingSlash(properties.botHttpBaseUrl()))
+            .baseUrl(stripTrailingSlash(properties.serverApi().baseUrl()))
             .build(),
         objectMapper,
         Clock.systemUTC());
   }
 
-  public TrueConfTokenService(
-      AppProperties properties,
-      RestClient.Builder restClientBuilder,
-      ObjectMapper objectMapper) {
-    this(properties, restClientBuilder, new TrueConfHttpClientFactory(properties), objectMapper);
-  }
-
-  TrueConfTokenService(
+  TrueConfServerApiTokenService(
       AppProperties properties,
       RestClient restClient,
       ObjectMapper objectMapper,
@@ -88,11 +82,15 @@ public class TrueConfTokenService {
   }
 
   private CachedToken requestToken(Instant requestedAt) {
-    Map<String, String> request = Map.of(
-        "grant_type", "password",
-        "client_id", properties.botClientId(),
-        "username", properties.botUsername(),
-        "password", properties.botPassword());
+    AppProperties.ServerApi serverApi = properties.serverApi();
+    Map<String, String> request = new LinkedHashMap<>();
+    request.put("grant_type", serverApi.grantType());
+    request.put("client_id", serverApi.clientId());
+    putIfNotBlank(request, "client_secret", serverApi.clientSecret());
+    if ("password".equalsIgnoreCase(serverApi.grantType())) {
+      putIfNotBlank(request, "username", serverApi.username());
+      putIfNotBlank(request, "password", serverApi.password());
+    }
 
     try {
       String body = restClient.post()
@@ -104,50 +102,59 @@ public class TrueConfTokenService {
           .body(String.class);
 
       JsonNode root = objectMapper.readTree(body);
-      String accessToken = firstText(root, "access_token", "token", "id_token");
+      String accessToken = firstText(root, "access_token", "token");
       if (accessToken == null) {
         throw new TrueConfException(
-            "OAUTH_RESPONSE_INVALID",
-            "TrueConf OAuth response does not contain access token",
+            "SERVER_API_OAUTH_RESPONSE_INVALID",
+            "TrueConf Server API OAuth response does not contain access token",
             true,
             root);
       }
 
-      Duration expiresIn = expiresIn(root);
+      Duration expiresIn = expiresIn(root, requestedAt);
       Instant expiresAt = requestedAt.plus(expiresIn);
       return new CachedToken(accessToken, expiresAt, refreshMargin(expiresIn));
     } catch (TrueConfException ex) {
       throw ex;
     } catch (RestClientResponseException ex) {
-      boolean retryable = ex.getStatusCode().is5xxServerError();
       JsonNode errorResponse = errorResponse(ex);
       throw new TrueConfException(
-          "OAUTH_HTTP_" + ex.getStatusCode().value(),
+          "SERVER_API_OAUTH_HTTP_" + ex.getStatusCode().value(),
           oauthHttpMessage(ex, errorResponse),
-          retryable,
+          ex.getStatusCode().is5xxServerError(),
           errorResponse,
           ex);
     } catch (RestClientException ex) {
       throw new TrueConfException(
-          "OAUTH_REQUEST_FAILED",
-          "TrueConf OAuth request failed",
+          "SERVER_API_OAUTH_REQUEST_FAILED",
+          "TrueConf Server API OAuth request failed",
           true,
           ex);
     } catch (Exception ex) {
       throw new TrueConfException(
-          "OAUTH_RESPONSE_INVALID",
-          "TrueConf OAuth response is not valid JSON",
+          "SERVER_API_OAUTH_RESPONSE_INVALID",
+          "TrueConf Server API OAuth response is not valid JSON",
           true,
           ex);
     }
   }
 
-  private static Duration expiresIn(JsonNode root) {
-    Long seconds = firstLong(root, "expires_in", "expiresIn");
-    if (seconds == null || seconds <= 0) {
-      return DEFAULT_EXPIRES_IN;
+  private static void putIfNotBlank(Map<String, String> request, String key, String value) {
+    if (value != null && !value.isBlank()) {
+      request.put(key, value);
     }
-    return Duration.ofSeconds(seconds);
+  }
+
+  private static Duration expiresIn(JsonNode root, Instant requestedAt) {
+    Long seconds = firstLong(root, "expires_in", "expiresIn");
+    if (seconds != null && seconds > 0) {
+      return Duration.ofSeconds(seconds);
+    }
+    Long expiresAtEpochSeconds = firstLong(root, "expires_at", "expiresAt");
+    if (expiresAtEpochSeconds != null && expiresAtEpochSeconds > requestedAt.getEpochSecond()) {
+      return Duration.between(requestedAt, Instant.ofEpochSecond(expiresAtEpochSeconds));
+    }
+    return DEFAULT_EXPIRES_IN;
   }
 
   private static Duration refreshMargin(Duration expiresIn) {
@@ -158,21 +165,9 @@ public class TrueConfTokenService {
     return tenth.compareTo(DEFAULT_REFRESH_MARGIN) < 0 ? tenth : DEFAULT_REFRESH_MARGIN;
   }
 
-  private static String firstText(JsonNode root, String... fieldNames) {
-    if (root == null || !root.isObject()) {
-      return null;
-    }
-    for (String fieldName : fieldNames) {
-      JsonNode node = root.get(fieldName);
-      if (node != null && node.isTextual() && !node.asText().isBlank()) {
-        return node.asText();
-      }
-    }
-    return null;
-  }
-
   private String oauthHttpMessage(RestClientResponseException ex, JsonNode errorResponse) {
-    String message = "TrueConf OAuth endpoint returned HTTP " + ex.getStatusCode().value();
+    String message = "TrueConf Server API OAuth endpoint returned HTTP "
+        + ex.getStatusCode().value();
     String error = firstText(errorResponse, "error");
     String errorDescription = firstText(errorResponse, "error_description", "errorDescription");
     if (errorDescription != null) {
@@ -194,6 +189,19 @@ public class TrueConfTokenService {
     } catch (Exception ignored) {
       return null;
     }
+  }
+
+  private static String firstText(JsonNode root, String... fieldNames) {
+    if (root == null || !root.isObject()) {
+      return null;
+    }
+    for (String fieldName : fieldNames) {
+      JsonNode node = root.get(fieldName);
+      if (node != null && node.isTextual() && !node.asText().isBlank()) {
+        return node.asText();
+      }
+    }
+    return null;
   }
 
   private static Long firstLong(JsonNode root, String... fieldNames) {

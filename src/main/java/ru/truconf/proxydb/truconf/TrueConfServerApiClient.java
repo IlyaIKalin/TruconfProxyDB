@@ -21,14 +21,14 @@ public class TrueConfServerApiClient {
   private static final String ACCOUNTS_PATH = "/api/v4/accounts";
 
   private final AppProperties properties;
-  private final TrueConfTokenService tokenService;
+  private final TrueConfServerApiTokenService tokenService;
   private final RestClient restClient;
   private final ObjectMapper objectMapper;
 
   @Autowired
   public TrueConfServerApiClient(
       AppProperties properties,
-      TrueConfTokenService tokenService,
+      TrueConfServerApiTokenService tokenService,
       RestClient.Builder restClientBuilder,
       TrueConfHttpClientFactory httpClientFactory,
       ObjectMapper objectMapper) {
@@ -36,14 +36,14 @@ public class TrueConfServerApiClient {
         properties,
         tokenService,
         httpClientFactory.configure(restClientBuilder)
-            .baseUrl(stripTrailingSlash(properties.httpBaseUrl()))
+            .baseUrl(stripTrailingSlash(properties.serverApi().baseUrl()))
             .build(),
         objectMapper);
   }
 
   TrueConfServerApiClient(
       AppProperties properties,
-      TrueConfTokenService tokenService,
+      TrueConfServerApiTokenService tokenService,
       RestClient restClient,
       ObjectMapper objectMapper) {
     this.properties = Objects.requireNonNull(properties, "properties must not be null");

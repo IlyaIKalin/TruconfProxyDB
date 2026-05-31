@@ -12,11 +12,11 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties(prefix = "truconf")
 public record AppProperties(
-    @NotBlank String httpBaseUrl,
-    @NotBlank String wsUrl,
-    @NotBlank String clientId,
-    @NotBlank String username,
-    @NotBlank String password,
+    @NotBlank String botHttpBaseUrl,
+    @NotBlank String botWsUrl,
+    @NotBlank String botClientId,
+    @NotBlank String botUsername,
+    @NotBlank String botPassword,
     @NotBlank String proxyApiKey,
     @NotBlank String fileStorageDir,
     boolean tlsInsecureSkipVerify,
@@ -55,7 +55,7 @@ public record AppProperties(
         retry,
         rateLimit,
         websocket,
-        defaultServerApi());
+        defaultServerApi(httpBaseUrl));
   }
 
   public AppProperties(
@@ -84,7 +84,7 @@ public record AppProperties(
         retry,
         rateLimit,
         websocket,
-        defaultServerApi());
+        defaultServerApi(httpBaseUrl));
   }
 
   public record Dispatcher(
@@ -112,11 +112,17 @@ public record AppProperties(
   }
 
   public record ServerApi(
+      @NotBlank String baseUrl,
+      @NotBlank String clientId,
+      @NotBlank String clientSecret,
+      @NotBlank String grantType,
+      String username,
+      String password,
       @Min(1) int pageSize,
       @Min(1) int maxScanPages) {
   }
 
-  private static ServerApi defaultServerApi() {
-    return new ServerApi(100, 20);
+  private static ServerApi defaultServerApi(String baseUrl) {
+    return new ServerApi(baseUrl, "change-me", "change-me", "client_credentials", "", "", 100, 20);
   }
 }

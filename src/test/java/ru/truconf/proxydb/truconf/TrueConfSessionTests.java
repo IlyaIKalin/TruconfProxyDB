@@ -215,7 +215,7 @@ class TrueConfSessionTests {
   private TrueConfSession session(AppProperties properties) {
     TrueConfTokenService tokenService = new TrueConfTokenService(
         properties,
-        RestClient.builder().baseUrl(properties.httpBaseUrl()).build(),
+        RestClient.builder().baseUrl(properties.botHttpBaseUrl()).build(),
         objectMapper,
         java.time.Clock.systemUTC());
     return new TrueConfSession(

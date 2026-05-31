@@ -41,7 +41,7 @@ public class TrueConfFileUploadClient implements TrueConfFileUploader {
       ObjectMapper objectMapper) {
     this(
         httpClientFactory.configure(restClientBuilder)
-            .baseUrl(stripTrailingSlash(properties.httpBaseUrl()))
+            .baseUrl(stripTrailingSlash(properties.botHttpBaseUrl()))
             .build(),
         tokenService,
         responseMapper,

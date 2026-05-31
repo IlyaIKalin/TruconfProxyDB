@@ -166,14 +166,14 @@ public class TrueConfSession implements TrueConfCommandTransport, AutoCloseable 
 
   private void openWebSocket() {
     requestId.set(0);
-    String origin = websocketOrigin(properties.wsUrl());
+    String origin = websocketOrigin(properties.botWsUrl());
     try {
       webSocket = httpClient.newWebSocketBuilder()
           .header("Origin", origin)
           .header("User-Agent", "truconf-proxydb")
           .header("Accept", "*/*")
           .subprotocols("json.v1")
-          .buildAsync(URI.create(properties.wsUrl()), new SessionListener())
+          .buildAsync(URI.create(properties.botWsUrl()), new SessionListener())
           .join();
       authenticated = false;
     } catch (RuntimeException ex) {

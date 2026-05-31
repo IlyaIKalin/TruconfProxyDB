@@ -13,11 +13,11 @@ class AppPropertiesTests {
   @Test
   void tlsInsecureSkipVerifyDefaultsToFalse() {
     AppProperties properties = new Binder(new MapConfigurationPropertySource(Map.ofEntries(
-        Map.entry("truconf.http-base-url", "https://trueconf.example.local"),
-        Map.entry("truconf.ws-url", "wss://trueconf.example.local/websocket/chat_bot/"),
-        Map.entry("truconf.client-id", "bot-client"),
-        Map.entry("truconf.username", "bot-user"),
-        Map.entry("truconf.password", "bot-password"),
+        Map.entry("truconf.bot-http-base-url", "https://bot.example.local"),
+        Map.entry("truconf.bot-ws-url", "wss://bot.example.local/websocket/chat_bot/"),
+        Map.entry("truconf.bot-client-id", "bot-client"),
+        Map.entry("truconf.bot-username", "bot-user"),
+        Map.entry("truconf.bot-password", "bot-password"),
         Map.entry("truconf.proxy-api-key", "api-key"),
         Map.entry("truconf.file-storage-dir", "/tmp/truconf-proxydb-test-files"),
         Map.entry("truconf.dispatcher.batch-size", "10"),
@@ -32,11 +32,19 @@ class AppPropertiesTests {
         Map.entry("truconf.websocket.request-timeout", "250ms"),
         Map.entry("truconf.websocket.connect-timeout", "2s"),
         Map.entry("truconf.websocket.reconnect-delay", "100ms"),
+        Map.entry("truconf.server-api.base-url", "https://server-api.example.local"),
+        Map.entry("truconf.server-api.client-id", "server-api-client"),
+        Map.entry("truconf.server-api.client-secret", "server-api-secret"),
+        Map.entry("truconf.server-api.grant-type", "client_credentials"),
+        Map.entry("truconf.server-api.username", ""),
+        Map.entry("truconf.server-api.password", ""),
         Map.entry("truconf.server-api.page-size", "100"),
         Map.entry("truconf.server-api.max-scan-pages", "20"))))
         .bind("truconf", Bindable.of(AppProperties.class))
         .orElseThrow(() -> new IllegalStateException("truconf properties were not bound"));
 
     assertThat(properties.tlsInsecureSkipVerify()).isFalse();
+    assertThat(properties.botHttpBaseUrl()).isEqualTo("https://bot.example.local");
+    assertThat(properties.serverApi().baseUrl()).isEqualTo("https://server-api.example.local");
   }
 }

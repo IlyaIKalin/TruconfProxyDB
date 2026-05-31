@@ -101,11 +101,17 @@ TrueConf, OAuth-токены и пароли к базе данных.
 | `SPRING_FLYWAY_ENABLED` | `true` | Включает миграции БД при старте. |
 | `SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE` | `100MB` | Максимальный размер загружаемого файла. |
 | `SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE` | `110MB` | Максимальный размер multipart-запроса. |
-| `TRUCONF_HTTP_BASE_URL` | `https://s13.trueconf.rt.ru` | Базовый HTTP URL TrueConf. |
-| `TRUCONF_WS_URL` | `wss://s13.trueconf.rt.ru/websocket/chat_bot/` | WebSocket URL бота TrueConf. |
-| `TRUCONF_CLIENT_ID` | `change-me` | OAuth client id, выданный TrueConf. |
-| `TRUCONF_USERNAME` | `bot-user` | Имя пользователя бота TrueConf. |
-| `TRUCONF_PASSWORD` | `change-me` | Пароль бота TrueConf. |
+| `TRUCONF_BOT_HTTP_BASE_URL` | `https://s13.trueconf.rt.ru` | HTTP URL TrueConf Bridge для токена бота и загрузки файлов. |
+| `TRUCONF_BOT_WS_URL` | `wss://s13.trueconf.rt.ru/websocket/chat_bot/` | WebSocket URL бота TrueConf. |
+| `TRUCONF_BOT_CLIENT_ID` | `change-me` | OAuth client id для Bridge/Chatbot Connector. |
+| `TRUCONF_BOT_USERNAME` | `bot-user` | Имя пользователя бота TrueConf. |
+| `TRUCONF_BOT_PASSWORD` | `change-me` | Пароль бота TrueConf. |
+| `TRUCONF_SERVER_API_BASE_URL` | `https://s13.trueconf.rt.ru` | HTTP URL TrueConf Server API для `/oauth2/v1/token` и `/api/v4/**`. |
+| `TRUCONF_SERVER_API_CLIENT_ID` | `change-me` | OAuth client id приложения TrueConf Server API. |
+| `TRUCONF_SERVER_API_CLIENT_SECRET` | `change-me` | OAuth client secret приложения TrueConf Server API. |
+| `TRUCONF_SERVER_API_GRANT_TYPE` | `client_credentials` | OAuth grant type для токена Server API. |
+| `TRUCONF_SERVER_API_USERNAME` | пусто | Имя пользователя для Server API OAuth, если используется `password` grant. |
+| `TRUCONF_SERVER_API_PASSWORD` | пусто | Пароль пользователя для Server API OAuth, если используется `password` grant. |
 | `TRUCONF_SERVER_API_PAGE_SIZE` | `100` | Размер страницы при сканировании `/api/v4/accounts`. |
 | `TRUCONF_SERVER_API_MAX_SCAN_PAGES` | `20` | Максимум страниц `/api/v4/accounts`, которые прокси просматривает за один поиск. |
 | `TRUCONF_PROXY_API_KEY` | `change-me` | Обязательное значение `X-API-Key` для `/api/v1/**`. |
@@ -223,7 +229,9 @@ curl -s "http://localhost:8080/api/v1/trueconf/users/search?query=Иванов&l
 
 Ответ содержит `trueconfId`; его нужно использовать как `recipient.userId` для
 `recipient.kind = USER`. Поиск использует TrueConf Server API v4 `/api/v4/accounts`
-на `TRUCONF_HTTP_BASE_URL` с OAuth-токеном бота и локально фильтрует поля `id`,
+на `TRUCONF_SERVER_API_BASE_URL`. Сервис сам получает Bearer-токен через
+`/oauth2/v1/token` по настройкам `TRUCONF_SERVER_API_CLIENT_ID` и
+`TRUCONF_SERVER_API_CLIENT_SECRET`, кэширует его и локально фильтрует поля `id`,
 `login`, `domain`, `displayName`, `type`, `trueconfId`.
 
 Операции:
@@ -370,8 +378,8 @@ limit 10;
 
 - Не открывайте `/api/v1/**` для недоверенных сетей без дополнительной защиты
   на edge: mTLS, VPN, allow lists в reverse proxy или правил WAF.
-- Ротируйте `TRUCONF_PROXY_API_KEY`, `TRUCONF_CLIENT_ID`,
-  `TRUCONF_PASSWORD` и пароли к базе данных, если они попали за пределы
+- Ротируйте `TRUCONF_PROXY_API_KEY`, `TRUCONF_BOT_CLIENT_ID`,
+  `TRUCONF_BOT_PASSWORD`, `TRUCONF_SERVER_API_CLIENT_SECRET` и пароли к базе данных, если они попали за пределы
   runtime-окружения.
 - Системы удалённой конфигурации должны хранить секреты в зашифрованном виде и
   не печатать разрешённые значения свойств в логах или диагностике.
