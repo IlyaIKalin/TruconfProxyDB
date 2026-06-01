@@ -97,6 +97,27 @@ class OutboxRepositoryTests {
   }
 
   @Test
+  void userEmailCacheUpsertsAndRefreshesLastUsedAt() {
+    assertThat(repository.findTrueconfIdByEmail("user@example.com")).isEmpty();
+
+    repository.upsertUserEmailCache(
+        "user@example.com",
+        "gd.rt.ru\\user@s13.trueconf.rt.ru",
+        "User Display");
+
+    assertThat(repository.findTrueconfIdByEmail("user@example.com"))
+        .contains("gd.rt.ru\\user@s13.trueconf.rt.ru");
+
+    repository.upsertUserEmailCache(
+        "user@example.com",
+        "gd.rt.ru\\user2@s13.trueconf.rt.ru",
+        "User Display 2");
+
+    assertThat(repository.findTrueconfIdByEmail("user@example.com"))
+        .contains("gd.rt.ru\\user2@s13.trueconf.rt.ru");
+  }
+
+  @Test
   void claimBatchClaimsOnlyReadyRowsAndMarksThemProcessing() {
     OutboxJob first = createReadyJob("claim-1");
     OutboxJob second = createReadyJob("claim-2");

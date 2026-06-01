@@ -123,7 +123,7 @@ class OutboxDeliveryFakeTrueConfIntegrationTests {
         new TrueConfRateLimiter(properties));
     OutboxDeliveryExecutor executor = new OutboxDeliveryExecutor(
         repository,
-        new P2pChatResolver(repository, trueConfClient),
+        new P2pChatResolver(repository, trueConfClient, email -> java.util.Optional.empty()),
         trueConfClient,
         new DbOnlyFileStorageService(),
         new RetryPolicy(properties.retry()),

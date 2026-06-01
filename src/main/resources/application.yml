@@ -62,3 +62,14 @@ truconf:
     password: ${TRUCONF_SERVER_API_PASSWORD:}
     page-size: ${TRUCONF_SERVER_API_PAGE_SIZE:100}
     max-scan-pages: ${TRUCONF_SERVER_API_MAX_SCAN_PAGES:20}
+  active-directory:
+    enabled: ${TRUCONF_AD_ENABLED:false}
+    url: ${TRUCONF_AD_URL:ldap://ad.example.local:389}
+    bind-dn: ${TRUCONF_AD_BIND_DN:}
+    bind-password: ${TRUCONF_AD_BIND_PASSWORD:}
+    base-dn: ${TRUCONF_AD_BASE_DN:DC=example,DC=local}
+    email-attribute: ${TRUCONF_AD_EMAIL_ATTRIBUTE:mail}
+    trueconf-id-attribute: ${TRUCONF_AD_TRUECONF_ID_ATTRIBUTE:extensionAttribute5}
+    display-name-attribute: ${TRUCONF_AD_DISPLAY_NAME_ATTRIBUTE:displayName}
+    connect-timeout: ${TRUCONF_AD_CONNECT_TIMEOUT:3s}
+    read-timeout: ${TRUCONF_AD_READ_TIMEOUT:5s}

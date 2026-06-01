@@ -20,6 +20,7 @@ public final class OutboxJobRowMapper implements RowMapper<OutboxJob> {
         RecipientKind.valueOf(rs.getString("recipient_kind")),
         rs.getString("chat_id"),
         rs.getString("user_id"),
+        rs.getString("recipient_email"),
         rs.getString("target_message_id"),
         rs.getString("reply_message_id"),
         rs.getString("payload_json"),

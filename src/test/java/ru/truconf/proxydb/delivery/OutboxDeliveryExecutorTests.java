@@ -53,6 +53,7 @@ class OutboxDeliveryExecutorTests {
   private final ObjectMapper objectMapper = new ObjectMapper();
   private OutboxRepository repository;
   private FakeTrueConfClient trueConfClient;
+  private FakeUserDirectory userDirectory;
   private OutboxDeliveryExecutor executor;
 
   @BeforeEach
@@ -72,9 +73,10 @@ class OutboxDeliveryExecutorTests {
 
     repository = new OutboxRepository(new JdbcTemplate(dataSource));
     trueConfClient = new FakeTrueConfClient(objectMapper);
+    userDirectory = new FakeUserDirectory();
     executor = new OutboxDeliveryExecutor(
         repository,
-        new P2pChatResolver(repository, trueConfClient),
+        new P2pChatResolver(repository, trueConfClient, userDirectory),
         trueConfClient,
         new DbOnlyFileStorageService(),
         new RetryPolicy(new AppProperties.Retry(
@@ -138,6 +140,53 @@ class OutboxDeliveryExecutorTests {
 
     assertThat(repository.findById(job.id()).orElseThrow().status()).isEqualTo(OutboxStatus.SENT);
     assertThat(trueConfClient.calls()).containsExactly("sendMessage:cached-chat-2:Cached hello:null:null");
+  }
+
+  @Test
+  void sendMessageToUserEmailResolvesTrueconfIdFromAdAndCachesIt() {
+    userDirectory.add("employee@example.com", "gd.rt.ru\\employee@s13.trueconf.rt.ru", "Employee User");
+    OutboxJob job = claimedEmailJob(
+        "send-message-user-email",
+        "Employee@Example.COM",
+        """
+            {"text":"Hello by email"}
+            """);
+
+    executor.execute(job, WORKER_ID);
+
+    OutboxJob stored = repository.findById(job.id()).orElseThrow();
+    assertThat(stored.status()).isEqualTo(OutboxStatus.SENT);
+    assertThat(stored.trueconfChatId()).isEqualTo("p2p-gd.rt.ru\\employee@s13.trueconf.rt.ru");
+    assertThat(repository.findTrueconfIdByEmail("employee@example.com"))
+        .contains("gd.rt.ru\\employee@s13.trueconf.rt.ru");
+    assertThat(repository.findP2pChatByUserId("gd.rt.ru\\employee@s13.trueconf.rt.ru"))
+        .isPresent();
+    assertThat(userDirectory.lookups()).containsExactly("employee@example.com");
+    assertThat(trueConfClient.calls()).containsExactly(
+        "createP2PChat:gd.rt.ru\\employee@s13.trueconf.rt.ru",
+        "sendMessage:p2p-gd.rt.ru\\employee@s13.trueconf.rt.ru:Hello by email:null:null");
+  }
+
+  @Test
+  void sendMessageToUserEmailUsesCachedTrueconfIdBeforeAdLookup() {
+    repository.upsertUserEmailCache(
+        "cached@example.com",
+        "gd.rt.ru\\cached@s13.trueconf.rt.ru",
+        "Cached User");
+    OutboxJob job = claimedEmailJob(
+        "send-message-user-email-cache",
+        "cached@example.com",
+        """
+            {"text":"Cached email"}
+            """);
+
+    executor.execute(job, WORKER_ID);
+
+    assertThat(repository.findById(job.id()).orElseThrow().status()).isEqualTo(OutboxStatus.SENT);
+    assertThat(userDirectory.lookups()).isEmpty();
+    assertThat(trueConfClient.calls()).containsExactly(
+        "createP2PChat:gd.rt.ru\\cached@s13.trueconf.rt.ru",
+        "sendMessage:p2p-gd.rt.ru\\cached@s13.trueconf.rt.ru:Cached email:null:null");
   }
 
   @Test
@@ -344,6 +393,22 @@ class OutboxDeliveryExecutorTests {
     return repository.claimBatch(WORKER_ID, Duration.ofMinutes(2), 1).getFirst();
   }
 
+  private OutboxJob claimedEmailJob(String externalId, String email, String payloadJson) {
+    repository.create(new CreateOutboxJobCommand(
+        externalId,
+        OutboxOperation.SEND_MESSAGE,
+        RecipientKind.USER_EMAIL,
+        null,
+        null,
+        email,
+        null,
+        null,
+        payloadJson,
+        3,
+        OffsetDateTime.now(ZoneOffset.UTC).minusSeconds(1)));
+    return repository.claimBatch(WORKER_ID, Duration.ofMinutes(2), 1).getFirst();
+  }
+
   private void assertSent(long jobId, String messageId, String fileId) {
     OutboxJob stored = repository.findById(jobId).orElseThrow();
     assertThat(stored.status()).isEqualTo(OutboxStatus.SENT);
@@ -513,6 +578,26 @@ class OutboxDeliveryExecutorTests {
       } catch (IOException ex) {
         throw new IllegalStateException(ex);
       }
+    }
+  }
+
+  private static final class FakeUserDirectory implements TrueConfUserDirectory {
+
+    private final java.util.Map<String, Entry> entries = new java.util.LinkedHashMap<>();
+    private final List<String> lookups = new ArrayList<>();
+
+    private void add(String email, String trueconfId, String displayName) {
+      entries.put(email.toLowerCase(java.util.Locale.ROOT), new Entry(email, trueconfId, displayName));
+    }
+
+    @Override
+    public java.util.Optional<Entry> findByEmail(String email) {
+      lookups.add(email);
+      return java.util.Optional.ofNullable(entries.get(email));
+    }
+
+    private List<String> lookups() {
+      return lookups;
     }
   }
 }

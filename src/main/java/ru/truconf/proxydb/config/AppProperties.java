@@ -24,7 +24,8 @@ public record AppProperties(
     @Valid @NotNull Retry retry,
     @Valid @NotNull RateLimit rateLimit,
     @Valid @NotNull Websocket websocket,
-    @Valid @NotNull ServerApi serverApi) {
+    @Valid @NotNull ServerApi serverApi,
+    @Valid @NotNull ActiveDirectory activeDirectory) {
 
   @ConstructorBinding
   public AppProperties {
@@ -55,7 +56,39 @@ public record AppProperties(
         retry,
         rateLimit,
         websocket,
-        defaultServerApi(httpBaseUrl));
+        defaultServerApi(httpBaseUrl),
+        defaultActiveDirectory());
+  }
+
+  public AppProperties(
+      String httpBaseUrl,
+      String wsUrl,
+      String clientId,
+      String username,
+      String password,
+      String proxyApiKey,
+      String fileStorageDir,
+      boolean tlsInsecureSkipVerify,
+      Dispatcher dispatcher,
+      Retry retry,
+      RateLimit rateLimit,
+      Websocket websocket,
+      ServerApi serverApi) {
+    this(
+        httpBaseUrl,
+        wsUrl,
+        clientId,
+        username,
+        password,
+        proxyApiKey,
+        fileStorageDir,
+        tlsInsecureSkipVerify,
+        dispatcher,
+        retry,
+        rateLimit,
+        websocket,
+        serverApi,
+        defaultActiveDirectory());
   }
 
   public AppProperties(
@@ -84,7 +117,8 @@ public record AppProperties(
         retry,
         rateLimit,
         websocket,
-        defaultServerApi(httpBaseUrl));
+        defaultServerApi(httpBaseUrl),
+        defaultActiveDirectory());
   }
 
   public record Dispatcher(
@@ -122,7 +156,34 @@ public record AppProperties(
       @Min(1) int maxScanPages) {
   }
 
+  public record ActiveDirectory(
+      boolean enabled,
+      @NotBlank String url,
+      String bindDn,
+      String bindPassword,
+      @NotBlank String baseDn,
+      @NotBlank String emailAttribute,
+      @NotBlank String trueconfIdAttribute,
+      @NotBlank String displayNameAttribute,
+      @NotNull Duration connectTimeout,
+      @NotNull Duration readTimeout) {
+  }
+
   private static ServerApi defaultServerApi(String baseUrl) {
     return new ServerApi(baseUrl, "change-me", "change-me", "client_credentials", "", "", 100, 20);
+  }
+
+  private static ActiveDirectory defaultActiveDirectory() {
+    return new ActiveDirectory(
+        false,
+        "ldap://ad.example.local:389",
+        "",
+        "",
+        "DC=example,DC=local",
+        "mail",
+        "extensionAttribute5",
+        "displayName",
+        Duration.ofSeconds(3),
+        Duration.ofSeconds(5));
   }
 }

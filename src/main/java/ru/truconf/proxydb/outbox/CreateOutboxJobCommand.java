@@ -11,11 +11,37 @@ public record CreateOutboxJobCommand(
     RecipientKind recipientKind,
     String chatId,
     String userId,
+    String recipientEmail,
     String targetMessageId,
     String replyMessageId,
     String payloadJson,
     int maxAttempts,
     OffsetDateTime nextAttemptAt) {
+
+  public CreateOutboxJobCommand(
+      String externalId,
+      OutboxOperation operation,
+      RecipientKind recipientKind,
+      String chatId,
+      String userId,
+      String targetMessageId,
+      String replyMessageId,
+      String payloadJson,
+      int maxAttempts,
+      OffsetDateTime nextAttemptAt) {
+    this(
+        externalId,
+        operation,
+        recipientKind,
+        chatId,
+        userId,
+        null,
+        targetMessageId,
+        replyMessageId,
+        payloadJson,
+        maxAttempts,
+        nextAttemptAt);
+  }
 
   public CreateOutboxJobCommand {
     Objects.requireNonNull(operation, "operation must not be null");

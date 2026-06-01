@@ -494,8 +494,9 @@
               <select name="recipientKind">
                 <option value="CHAT">CHAT</option>
                 <option value="USER">USER</option>
+                <option value="USER_EMAIL">USER_EMAIL</option>
               </select>
-              <input name="recipientValue" placeholder="chatId или userId" required>
+              <input name="recipientValue" placeholder="chatId, userId или email" required>
             </div>
           </div>
           <div class="grid">
@@ -538,8 +539,9 @@
               <select name="recipientKind">
                 <option value="CHAT">CHAT</option>
                 <option value="USER">USER</option>
+                <option value="USER_EMAIL">USER_EMAIL</option>
               </select>
-              <input name="recipientValue" placeholder="chatId или userId" required>
+              <input name="recipientValue" placeholder="chatId, userId или email" required>
             </div>
           </div>
           <div class="grid">
@@ -625,8 +627,9 @@
                 <select name="recipientKind">
                   <option value="CHAT">CHAT</option>
                   <option value="USER">USER</option>
+                  <option value="USER_EMAIL">USER_EMAIL</option>
                 </select>
-                <input name="recipientValue" placeholder="chatId или userId" required>
+                <input name="recipientValue" placeholder="chatId, userId или email" required>
               </div>
             </div>
             <div class="field">
@@ -700,8 +703,9 @@
                 <select name="recipientKind">
                   <option value="CHAT">CHAT</option>
                   <option value="USER">USER</option>
+                  <option value="USER_EMAIL">USER_EMAIL</option>
                 </select>
-                <input name="recipientValue" placeholder="chatId или userId" required>
+                <input name="recipientValue" placeholder="chatId, userId или email" required>
               </div>
             </div>
             <div class="field span">
@@ -760,8 +764,9 @@
                 <select name="recipientKind">
                   <option value="CHAT">CHAT</option>
                   <option value="USER">USER</option>
+                  <option value="USER_EMAIL">USER_EMAIL</option>
                 </select>
-                <input name="recipientValue" placeholder="chatId или userId" required>
+                <input name="recipientValue" placeholder="chatId, userId или email" required>
               </div>
             </div>
             <div class="field">
@@ -1076,9 +1081,13 @@
     function recipient(form) {
       const kind = value(form, 'recipientKind');
       const id = value(form, 'recipientValue');
-      return kind === 'CHAT'
-        ? { kind, chatId: id }
-        : { kind, userId: id };
+      if (kind === 'CHAT') {
+        return { kind, chatId: id };
+      }
+      if (kind === 'USER_EMAIL') {
+        return { kind, email: id };
+      }
+      return { kind, userId: id };
     }
 
     async function createJsonJob(body) {

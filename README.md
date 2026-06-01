@@ -114,6 +114,16 @@ TrueConf, OAuth-токены и пароли к базе данных.
 | `TRUCONF_SERVER_API_PASSWORD` | пусто | Пароль пользователя для Server API OAuth, если используется `password` grant. |
 | `TRUCONF_SERVER_API_PAGE_SIZE` | `100` | Размер страницы при сканировании `/api/v4/accounts`. |
 | `TRUCONF_SERVER_API_MAX_SCAN_PAGES` | `20` | Максимум страниц `/api/v4/accounts`, которые прокси просматривает за один поиск. |
+| `TRUCONF_AD_ENABLED` | `false` | Включает поиск TrueConf ID в AD для `recipient.kind = USER_EMAIL`. |
+| `TRUCONF_AD_URL` | `ldap://ad.example.local:389` | LDAP/LDAPS URL контроллера домена. |
+| `TRUCONF_AD_BIND_DN` | пусто | Логин сервисной УЗ для bind в AD: DN, UPN или `DOMAIN\user`. |
+| `TRUCONF_AD_BIND_PASSWORD` | пусто | Пароль сервисной УЗ для bind в AD. |
+| `TRUCONF_AD_BASE_DN` | `DC=example,DC=local` | Base DN для поиска пользователей. |
+| `TRUCONF_AD_EMAIL_ATTRIBUTE` | `mail` | Атрибут AD, по которому ищется email. |
+| `TRUCONF_AD_TRUECONF_ID_ATTRIBUTE` | `extensionAttribute5` | Атрибут AD, где хранится TrueConf ID. |
+| `TRUCONF_AD_DISPLAY_NAME_ATTRIBUTE` | `displayName` | Атрибут AD для отображаемого имени в кэше. |
+| `TRUCONF_AD_CONNECT_TIMEOUT` | `3s` | Тайм-аут подключения к AD. |
+| `TRUCONF_AD_READ_TIMEOUT` | `5s` | Тайм-аут чтения из AD. |
 | `TRUCONF_PROXY_API_KEY` | `change-me` | Обязательное значение `X-API-Key` для `/api/v1/**`. |
 | `TRUCONF_FILE_STORAGE_DIR` | `/var/lib/truconf-proxydb/files` | Корневой каталог для сохранённых файлов. |
 | `TRUCONF_TLS_INSECURE_SKIP_VERIFY` | `false` | Отключает проверку TLS-сертификатов только для исходящих клиентов TrueConf. Используйте только как временный workaround для стендов с некорректной цепочкой сертификатов. |
@@ -233,6 +243,26 @@ curl -s "http://localhost:8080/api/v1/trueconf/users/search?query=Иванов&l
 `/oauth2/v1/token` по настройкам `TRUCONF_SERVER_API_CLIENT_ID` и
 `TRUCONF_SERVER_API_CLIENT_SECRET`, кэширует его и локально фильтрует поля `id`,
 `login`, `domain`, `displayName`, `type`, `trueconfId`.
+
+Для отправки по email можно использовать `recipient.kind = USER_EMAIL`:
+
+```json
+{
+  "operation": "SEND_MESSAGE",
+  "recipient": {
+    "kind": "USER_EMAIL",
+    "email": "user@example.com"
+  },
+  "payload": {
+    "text": "Hello"
+  }
+}
+```
+
+При доставке сервис сначала проверяет локальный кэш `email -> trueconfId`; если
+связки нет, ищет пользователя в AD по `TRUCONF_AD_EMAIL_ATTRIBUTE`, берёт TrueConf
+ID из `TRUCONF_AD_TRUECONF_ID_ATTRIBUTE` и сохраняет связку для последующих
+отправок.
 
 Операции:
 

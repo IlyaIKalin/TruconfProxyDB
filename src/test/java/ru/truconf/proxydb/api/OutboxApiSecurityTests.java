@@ -85,6 +85,7 @@ class OutboxApiSecurityTests {
   @BeforeEach
   void cleanDatabase() throws IOException {
     jdbc.update("truncate table truconf_outbox restart identity cascade");
+    jdbc.update("truncate table truconf_user_email_cache");
     FileSystemUtils.deleteRecursively(STORAGE_DIR);
     Files.createDirectories(STORAGE_DIR);
   }
@@ -120,6 +121,32 @@ class OutboxApiSecurityTests {
     assertThat(stored.userId()).isEqualTo("user@example.com");
     assertThat(stored.payloadJson()).contains("\"text\": \"Hello\"");
     assertThat(stored.maxAttempts()).isEqualTo(6);
+  }
+
+  @Test
+  void createJobWithUserEmailRecipientPersistsNormalizedEmail() throws Exception {
+    mockMvc.perform(post("/api/v1/outbox")
+            .header(API_KEY_HEADER, "test-api-key")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                  "externalId": "crm-api-create-email-1",
+                  "operation": "SEND_MESSAGE",
+                  "recipient": {
+                    "kind": "USER_EMAIL",
+                    "email": "User@Example.COM"
+                  },
+                  "payload": {
+                    "text": "Hello"
+                  }
+                }
+                """))
+        .andExpect(status().isCreated());
+
+    OutboxJob stored = repository.findByExternalId("crm-api-create-email-1").orElseThrow();
+    assertThat(stored.recipientKind()).isEqualTo(RecipientKind.USER_EMAIL);
+    assertThat(stored.recipientEmail()).isEqualTo("user@example.com");
+    assertThat(stored.userId()).isNull();
   }
 
   @Test
@@ -365,6 +392,23 @@ class OutboxApiSecurityTests {
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.error.code", equalTo("VALIDATION_ERROR")))
         .andExpect(jsonPath("$.error.details[*].field", hasItem("userRecipientValid")));
+
+    mockMvc.perform(post("/api/v1/outbox")
+            .header(API_KEY_HEADER, "test-api-key")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                  "operation": "SEND_MESSAGE",
+                  "recipient": {
+                    "kind": "USER_EMAIL"
+                  },
+                  "payload": {
+                    "text": "Hello"
+                  }
+                }
+                """))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error.details[*].field", hasItem("userEmailRecipientValid")));
   }
 
   @Test

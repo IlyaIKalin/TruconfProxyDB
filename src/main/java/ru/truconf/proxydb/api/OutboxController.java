@@ -94,6 +94,7 @@ public class OutboxController {
         request.recipient().kind(),
         normalizeBlank(request.recipient().chatId()),
         normalizeBlank(request.recipient().userId()),
+        normalizeEmail(request.recipient().email()),
         normalizeBlank(request.targetMessageId()),
         normalizeBlank(request.replyMessageId()),
         writePayload(request.payload()),
@@ -108,6 +109,7 @@ public class OutboxController {
         request.recipient().kind(),
         normalizeBlank(request.recipient().chatId()),
         normalizeBlank(request.recipient().userId()),
+        normalizeEmail(request.recipient().email()),
         null,
         normalizeBlank(request.replyMessageId()),
         writePayload(filePayload(request)),
@@ -123,6 +125,7 @@ public class OutboxController {
         job.recipientKind(),
         job.chatId(),
         job.userId(),
+        job.recipientEmail(),
         job.targetMessageId(),
         job.replyMessageId(),
         readJson(job.payloadJson()),
@@ -218,5 +221,10 @@ public class OutboxController {
 
   private static String normalizeBlank(String value) {
     return value == null || value.isBlank() ? null : value;
+  }
+
+  private static String normalizeEmail(String value) {
+    String normalized = normalizeBlank(value);
+    return normalized == null ? null : normalized.trim().toLowerCase(java.util.Locale.ROOT);
   }
 }

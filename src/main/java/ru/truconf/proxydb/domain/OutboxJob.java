@@ -9,6 +9,7 @@ public record OutboxJob(
     RecipientKind recipientKind,
     String chatId,
     String userId,
+    String recipientEmail,
     String targetMessageId,
     String replyMessageId,
     String payloadJson,

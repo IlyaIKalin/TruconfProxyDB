@@ -57,6 +57,7 @@ class FlywayMigrationTests {
             'truconf_outbox',
             'truconf_outbox_file',
             'truconf_p2p_chat_cache',
+            'truconf_user_email_cache',
             'flyway_schema_history'
           )
         """,
@@ -66,12 +67,12 @@ class FlywayMigrationTests {
         """
         select count(*)
         from flyway_schema_history
-        where success = true and version = '1'
+        where success = true and version in ('1', '2')
         """,
         Integer.class);
 
-    assertThat(tableCount).isEqualTo(4);
-    assertThat(appliedMigrations).isEqualTo(1);
+    assertThat(tableCount).isEqualTo(5);
+    assertThat(appliedMigrations).isEqualTo(2);
   }
 
   @Test
@@ -99,6 +100,11 @@ class FlywayMigrationTests {
     assertDataAccessFailure("""
         insert into truconf_outbox (operation, recipient_kind, payload_json)
         values ('SEND_MESSAGE', 'CHAT', '{}'::jsonb)
+        """);
+
+    assertDataAccessFailure("""
+        insert into truconf_outbox (operation, recipient_kind, payload_json)
+        values ('SEND_MESSAGE', 'USER_EMAIL', '{}'::jsonb)
         """);
 
     assertDataAccessFailure("""
@@ -174,6 +180,34 @@ class FlywayMigrationTests {
     assertThat(job.maxAttempts()).isEqualTo(10);
     assertThat(job.nextAttemptAt()).isNotNull();
     assertThat(job.payloadJson()).contains("\"text\": \"Hello\"");
+  }
+
+  @Test
+  void directInsertUserEmailRecipientPassesAndMapsToDomain() {
+    jdbc.update("""
+        insert into truconf_outbox (
+          external_id,
+          operation,
+          recipient_kind,
+          recipient_email,
+          payload_json
+        ) values (
+          'crm-email-123',
+          'SEND_MESSAGE',
+          'USER_EMAIL',
+          'user@example.com',
+          '{"text":"Hello"}'::jsonb
+        )
+        """);
+
+    var job = jdbc.queryForObject(
+        "select * from truconf_outbox where external_id = 'crm-email-123'",
+        new OutboxJobRowMapper());
+
+    assertThat(job).isNotNull();
+    assertThat(job.recipientKind()).isEqualTo(RecipientKind.USER_EMAIL);
+    assertThat(job.recipientEmail()).isEqualTo("user@example.com");
+    assertThat(job.userId()).isNull();
   }
 
   @Test

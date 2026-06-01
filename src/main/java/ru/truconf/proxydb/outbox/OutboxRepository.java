@@ -34,12 +34,14 @@ public class OutboxRepository {
           recipient_kind,
           chat_id,
           user_id,
+          recipient_email,
           target_message_id,
           reply_message_id,
           payload_json,
           max_attempts,
           next_attempt_at
         ) values (
+          ?,
           ?,
           ?,
           ?,
@@ -59,6 +61,7 @@ public class OutboxRepository {
         command.recipientKind().name(),
         command.chatId(),
         command.userId(),
+        command.recipientEmail(),
         command.targetMessageId(),
         command.replyMessageId(),
         command.payloadJson(),
@@ -167,6 +170,48 @@ public class OutboxRepository {
         P2P_CHAT_CACHE_ENTRY_ROW_MAPPER,
         userId,
         chatId);
+  }
+
+  public Optional<String> findTrueconfIdByEmail(String email) {
+    requireText(email, "email");
+    List<String> trueconfIds = jdbc.queryForList("""
+        update truconf_user_email_cache
+        set last_used_at = now()
+        where email = ?
+        returning trueconf_id
+        """,
+        String.class,
+        email);
+    if (trueconfIds.isEmpty()) {
+      return Optional.empty();
+    }
+    return Optional.of(trueconfIds.getFirst());
+  }
+
+  public void upsertUserEmailCache(String email, String trueconfId, String displayName) {
+    requireText(email, "email");
+    requireText(trueconfId, "trueconfId");
+
+    jdbc.update("""
+        insert into truconf_user_email_cache (
+          email,
+          trueconf_id,
+          display_name,
+          last_used_at
+        ) values (
+          ?,
+          ?,
+          ?,
+          now()
+        )
+        on conflict (email) do update
+        set trueconf_id = excluded.trueconf_id,
+            display_name = excluded.display_name,
+            last_used_at = now()
+        """,
+        email,
+        trueconfId,
+        displayName);
   }
 
   public List<OutboxJob> claimBatch(String workerId, Duration lockTimeout, int batchSize) {

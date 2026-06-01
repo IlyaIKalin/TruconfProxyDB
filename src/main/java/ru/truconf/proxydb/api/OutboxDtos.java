@@ -3,6 +3,7 @@ package ru.truconf.proxydb.api;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import java.time.OffsetDateTime;
@@ -42,6 +43,14 @@ public final class OutboxDtos {
           || recipient.kind() != RecipientKind.USER
           || hasText(recipient.userId());
     }
+
+    @JsonIgnore
+    @AssertTrue(message = "recipient.email is required when recipient.kind is USER_EMAIL")
+    public boolean isUserEmailRecipientValid() {
+      return recipient == null
+          || recipient.kind() != RecipientKind.USER_EMAIL
+          || hasText(recipient.email());
+    }
   }
 
   public record CreateOutboxFileRequest(
@@ -67,12 +76,22 @@ public final class OutboxDtos {
           || recipient.kind() != RecipientKind.USER
           || hasText(recipient.userId());
     }
+
+    @JsonIgnore
+    @AssertTrue(message = "recipient.email is required when recipient.kind is USER_EMAIL")
+    public boolean isUserEmailRecipientValid() {
+      return recipient == null
+          || recipient.kind() != RecipientKind.USER_EMAIL
+          || hasText(recipient.email());
+    }
   }
 
   public record RecipientDto(
       @NotNull RecipientKind kind,
       String chatId,
-      String userId) {
+      String userId,
+      @Email
+      String email) {
   }
 
   public record CreateOutboxResponse(
@@ -92,6 +111,7 @@ public final class OutboxDtos {
       RecipientKind recipientKind,
       String chatId,
       String userId,
+      String recipientEmail,
       String targetMessageId,
       String replyMessageId,
       JsonNode payload,

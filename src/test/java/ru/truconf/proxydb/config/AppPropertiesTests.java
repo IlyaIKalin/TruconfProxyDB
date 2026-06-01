@@ -39,12 +39,23 @@ class AppPropertiesTests {
         Map.entry("truconf.server-api.username", ""),
         Map.entry("truconf.server-api.password", ""),
         Map.entry("truconf.server-api.page-size", "100"),
-        Map.entry("truconf.server-api.max-scan-pages", "20"))))
+        Map.entry("truconf.server-api.max-scan-pages", "20"),
+        Map.entry("truconf.active-directory.enabled", "true"),
+        Map.entry("truconf.active-directory.url", "ldap://ad.example.local:389"),
+        Map.entry("truconf.active-directory.bind-dn", "CN=svc,DC=example,DC=local"),
+        Map.entry("truconf.active-directory.bind-password", "secret"),
+        Map.entry("truconf.active-directory.base-dn", "DC=example,DC=local"),
+        Map.entry("truconf.active-directory.email-attribute", "mail"),
+        Map.entry("truconf.active-directory.trueconf-id-attribute", "extensionAttribute5"),
+        Map.entry("truconf.active-directory.display-name-attribute", "displayName"),
+        Map.entry("truconf.active-directory.connect-timeout", "3s"),
+        Map.entry("truconf.active-directory.read-timeout", "5s"))))
         .bind("truconf", Bindable.of(AppProperties.class))
         .orElseThrow(() -> new IllegalStateException("truconf properties were not bound"));
 
     assertThat(properties.tlsInsecureSkipVerify()).isFalse();
     assertThat(properties.botHttpBaseUrl()).isEqualTo("https://bot.example.local");
     assertThat(properties.serverApi().baseUrl()).isEqualTo("https://server-api.example.local");
+    assertThat(properties.activeDirectory().trueconfIdAttribute()).isEqualTo("extensionAttribute5");
   }
 }
