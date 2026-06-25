@@ -73,6 +73,29 @@ class DefaultTrueConfClientTests {
     assertThat(command.get("payload").get("page").asInt()).isEqualTo(2);
   }
 
+  @Test
+  void groupChatMethodsUseWebSocketTransportAndRateLimiter() {
+    RecordingTransport transport = new RecordingTransport(objectMapper);
+    RecordingFileUploader uploader = new RecordingFileUploader(objectMapper);
+    RecordingRateLimiter rateLimiter = new RecordingRateLimiter();
+    DefaultTrueConfClient client = new DefaultTrueConfClient(
+        transport,
+        commandFactory,
+        uploader,
+        rateLimiter);
+
+    TrueConfResponse createResponse = client.createGroupChat("Support");
+    TrueConfResponse addResponse = client.addChatParticipant("group-chat-1", "user@example.com", true);
+
+    assertThat(createResponse.chatId()).isEqualTo("group-chat-1");
+    assertThat(addResponse.rawResponse().get("payload").get("userId").asText())
+        .isEqualTo("user@example.com");
+    assertThat(transport.methods()).containsExactly("createGroupChat", "addChatParticipant");
+    assertThat(rateLimiter.acquireCount()).isEqualTo(2);
+    assertThat(transport.commands().get(1).get("payload").get("displayHistory").asBoolean())
+        .isTrue();
+  }
+
   private TrueConfUploadFile uploadFile(String fileName, String content) {
     byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
     return new TrueConfUploadFile(
@@ -152,6 +175,28 @@ class DefaultTrueConfClientTests {
         root.put("type", 2);
         root.set("payload", payload);
         return new TrueConfResponse(null, null, null, null, null, null, null, root);
+      }
+      if ("createGroupChat".equals(method)) {
+        return new TrueConfResponse(
+            "group-chat-1",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            raw("chatId", "group-chat-1"));
+      }
+      if ("addChatParticipant".equals(method)) {
+        return new TrueConfResponse(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "user@example.com",
+            raw("userId", "user@example.com"));
       }
       throw new AssertionError("Unexpected method: " + method);
     }

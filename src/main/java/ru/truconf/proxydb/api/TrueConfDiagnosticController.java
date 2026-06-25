@@ -4,13 +4,23 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import java.net.URI;
+import java.util.List;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import ru.truconf.proxydb.delivery.GroupChatService;
+import ru.truconf.proxydb.delivery.GroupChatService.AddParticipantsCommand;
+import ru.truconf.proxydb.delivery.GroupChatService.AddParticipantsResult;
+import ru.truconf.proxydb.delivery.GroupChatService.CreateGroupChatCommand;
+import ru.truconf.proxydb.delivery.GroupChatService.CreateGroupChatResult;
+import ru.truconf.proxydb.delivery.GroupChatService.ParticipantCommand;
 import ru.truconf.proxydb.truconf.TrueConfClient;
 import ru.truconf.proxydb.truconf.TrueConfServerApiClient;
 import ru.truconf.proxydb.truconf.TrueConfServerApiClient.UserSearchResponse;
@@ -23,12 +33,15 @@ public class TrueConfDiagnosticController {
 
   private final TrueConfClient trueConfClient;
   private final TrueConfServerApiClient trueConfServerApiClient;
+  private final GroupChatService groupChatService;
 
   public TrueConfDiagnosticController(
       TrueConfClient trueConfClient,
-      TrueConfServerApiClient trueConfServerApiClient) {
+      TrueConfServerApiClient trueConfServerApiClient,
+      GroupChatService groupChatService) {
     this.trueConfClient = trueConfClient;
     this.trueConfServerApiClient = trueConfServerApiClient;
+    this.groupChatService = groupChatService;
   }
 
   @GetMapping("/chats")
@@ -43,6 +56,27 @@ public class TrueConfDiagnosticController {
     return trueConfClient.createP2PChat(request.userId()).rawResponse();
   }
 
+  @PostMapping("/group-chats")
+  public ResponseEntity<CreateGroupChatResult> createGroupChat(
+      @RequestBody @Valid CreateGroupChatRequest request) {
+    CreateGroupChatResult response = groupChatService.createGroupChat(new CreateGroupChatCommand(
+        request.title(),
+        participants(request.participants()),
+        request.displayHistory()));
+    return ResponseEntity.created(URI.create("/api/v1/trueconf/group-chats/" + response.chatId()))
+        .body(response);
+  }
+
+  @PostMapping("/group-chats/{chatId}/participants")
+  public AddParticipantsResult addGroupChatParticipants(
+      @PathVariable String chatId,
+      @RequestBody AddParticipantsRequest request) {
+    return groupChatService.addParticipants(new AddParticipantsCommand(
+        chatId,
+        participants(request == null ? null : request.participants()),
+        request == null ? null : request.displayHistory()));
+  }
+
   @GetMapping("/users/search")
   public UserSearchResponse searchUsers(
       @RequestParam @NotBlank String query,
@@ -51,5 +85,30 @@ public class TrueConfDiagnosticController {
   }
 
   public record CreateP2PChatRequest(@NotBlank String userId) {
+  }
+
+  public record CreateGroupChatRequest(
+      @NotBlank String title,
+      List<ParticipantRequest> participants,
+      Boolean displayHistory) {
+  }
+
+  public record AddParticipantsRequest(
+      List<ParticipantRequest> participants,
+      Boolean displayHistory) {
+  }
+
+  public record ParticipantRequest(String email, String userId) {
+  }
+
+  private static List<ParticipantCommand> participants(List<ParticipantRequest> participants) {
+    if (participants == null) {
+      return null;
+    }
+    return participants.stream()
+        .map(participant -> participant == null
+            ? null
+            : new ParticipantCommand(participant.email(), participant.userId()))
+        .toList();
   }
 }

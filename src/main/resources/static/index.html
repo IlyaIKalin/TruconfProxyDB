@@ -290,6 +290,18 @@
       margin-top: 12px;
     }
 
+    .group-block {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+
+    .group-block h3 {
+      margin: 0 0 12px;
+      font-size: 15px;
+      letter-spacing: 0;
+    }
+
     .hidden {
       display: none !important;
     }
@@ -605,7 +617,49 @@
           <div class="actions">
             <button id="createP2pButton" class="btn secondary" type="button">Создать P2P</button>
           </div>
-          <p class="hint">Запрос идет напрямую в TrueConf через WebSocket-сессию proxy и не создает outbox job.</p>
+          <div class="group-block">
+            <h3>Создать групповой чат</h3>
+            <div class="field">
+              <label for="groupChatTitle">Title</label>
+              <input id="groupChatTitle" placeholder="Рабочая группа">
+            </div>
+            <div class="field">
+              <label for="groupChatParticipants">Participants</label>
+              <textarea id="groupChatParticipants" spellcheck="false" placeholder="email:user@example.com&#10;userId:gd.rt.ru\user@s13.trueconf.rt.ru"></textarea>
+              <p class="hint">По одному участнику на строку: email:..., userId:...; коротко: строка с @ = email, иначе userId.</p>
+            </div>
+            <div class="field">
+              <label class="checkbox">
+                <input id="groupChatDisplayHistory" type="checkbox" checked>
+                <span>displayHistory</span>
+              </label>
+            </div>
+            <div class="actions">
+              <button id="createGroupChatButton" class="btn secondary" type="button">Создать группу</button>
+            </div>
+          </div>
+          <div class="group-block">
+            <h3>Добавить участников</h3>
+            <div class="field">
+              <label for="addParticipantsChatId">Chat ID</label>
+              <input id="addParticipantsChatId" placeholder="group-chat-123">
+            </div>
+            <div class="field">
+              <label for="addParticipantsList">Participants</label>
+              <textarea id="addParticipantsList" spellcheck="false" placeholder="email:user@example.com&#10;gd.rt.ru\user@s13.trueconf.rt.ru"></textarea>
+              <p class="hint">Пустые строки игнорируются. Ответ показывает результат по каждому участнику.</p>
+            </div>
+            <div class="field">
+              <label class="checkbox">
+                <input id="addParticipantsDisplayHistory" type="checkbox" checked>
+                <span>displayHistory</span>
+              </label>
+            </div>
+            <div class="actions">
+              <button id="addGroupParticipantsButton" class="btn secondary" type="button">Добавить участников</button>
+            </div>
+          </div>
+          <p class="hint">Запросы идут напрямую в TrueConf через WebSocket-сессию proxy и не создают outbox job.</p>
         </div>
 
         <form id="surveyForm" class="panel-body form-tab hidden" data-panel="survey">
@@ -972,6 +1026,8 @@
     document.querySelector('#lookupButton').addEventListener('click', lookupFromFields);
     document.querySelector('#loadChatsButton').addEventListener('click', loadChats);
     document.querySelector('#createP2pButton').addEventListener('click', createP2pChat);
+    document.querySelector('#createGroupChatButton').addEventListener('click', createGroupChat);
+    document.querySelector('#addGroupParticipantsButton').addEventListener('click', addGroupChatParticipants);
     document.querySelector('#searchUsersButton').addEventListener('click', searchUsers);
     document.querySelector('#useFirstUserButton').addEventListener('click', useFirstUser);
     document.querySelector('#actionsForm [name="operation"]').addEventListener('change', updateActionFields);
@@ -1147,6 +1203,62 @@
       }, { diagnostic: true });
     }
 
+    async function createGroupChat() {
+      const title = document.querySelector('#groupChatTitle').value.trim();
+      if (!title) {
+        notify('Укажите title группового чата');
+        return;
+      }
+      const body = {
+        title,
+        participants: parseParticipants(document.querySelector('#groupChatParticipants').value),
+        displayHistory: document.querySelector('#groupChatDisplayHistory').checked
+      };
+      await request(`${apiBase}/trueconf/group-chats`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      }, { groupCreate: true });
+    }
+
+    async function addGroupChatParticipants() {
+      const chatId = document.querySelector('#addParticipantsChatId').value.trim();
+      if (!chatId) {
+        notify('Укажите chatId группового чата');
+        return;
+      }
+      const participants = parseParticipants(document.querySelector('#addParticipantsList').value);
+      if (participants.length === 0) {
+        notify('Укажите хотя бы одного участника');
+        return;
+      }
+      await request(`${apiBase}/trueconf/group-chats/${encodeURIComponent(chatId)}/participants`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          participants,
+          displayHistory: document.querySelector('#addParticipantsDisplayHistory').checked
+        })
+      }, { groupParticipants: true });
+    }
+
+    function parseParticipants(text) {
+      return String(text || '')
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(Boolean)
+        .map(line => {
+          const lower = line.toLowerCase();
+          if (lower.startsWith('email:')) {
+            return { email: line.slice('email:'.length).trim() };
+          }
+          if (lower.startsWith('userid:')) {
+            return { userId: line.slice('userId:'.length).trim() };
+          }
+          return line.includes('@') ? { email: line } : { userId: line };
+        });
+    }
+
     async function searchUsers() {
       const query = document.querySelector('#userQuery').value.trim();
       const limit = document.querySelector('#userLimit').value || '20';
@@ -1278,6 +1390,16 @@
         document.querySelector('#metricTrueconf').textContent = userCount(data);
         return;
       }
+      if (extra.groupCreate || extra.groupParticipants) {
+        setStatus('OK');
+        document.querySelector('#metricId').textContent = '-';
+        document.querySelector('#metricExternal').textContent = '-';
+        document.querySelector('#metricAttempts').textContent = '-';
+        document.querySelector('#metricTrueconf').textContent = extra.groupCreate
+          ? (data.chatId || '-')
+          : participantCount(data);
+        return;
+      }
       setStatus(data.status || 'OK');
       if (!data.id) {
         document.querySelector('#metricId').textContent = '-';
@@ -1301,6 +1423,10 @@
 
     function userCount(data) {
       return Array.isArray(data?.users) ? `${data.users.length} users` : '-';
+    }
+
+    function participantCount(data) {
+      return Array.isArray(data?.participants) ? `${data.participants.length} participants` : '-';
     }
 
     function setStatus(value) {

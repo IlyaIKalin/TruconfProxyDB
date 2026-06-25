@@ -1,6 +1,5 @@
 package ru.truconf.proxydb.delivery;
 
-import java.util.Locale;
 import java.util.Objects;
 import org.springframework.stereotype.Component;
 import ru.truconf.proxydb.domain.OutboxJob;
@@ -14,15 +13,15 @@ public class P2pChatResolver {
 
   private final OutboxRepository repository;
   private final TrueConfClient trueConfClient;
-  private final TrueConfUserDirectory userDirectory;
+  private final TrueConfUserIdResolver userIdResolver;
 
   public P2pChatResolver(
       OutboxRepository repository,
       TrueConfClient trueConfClient,
-      TrueConfUserDirectory userDirectory) {
+      TrueConfUserIdResolver userIdResolver) {
     this.repository = Objects.requireNonNull(repository, "repository must not be null");
     this.trueConfClient = Objects.requireNonNull(trueConfClient, "trueConfClient must not be null");
-    this.userDirectory = Objects.requireNonNull(userDirectory, "userDirectory must not be null");
+    this.userIdResolver = Objects.requireNonNull(userIdResolver, "userIdResolver must not be null");
   }
 
   public String resolveChatId(OutboxJob job) {
@@ -38,26 +37,10 @@ public class P2pChatResolver {
 
     String userId = job.recipientKind() == RecipientKind.USER
         ? requireText(job.userId(), "userId")
-        : resolveTrueconfIdByEmail(requireText(job.recipientEmail(), "recipientEmail"));
+        : userIdResolver.resolveByEmail(requireText(job.recipientEmail(), "recipientEmail"));
     return repository.findP2pChatByUserId(userId)
         .map(entry -> entry.chatId())
         .orElseGet(() -> createAndCacheP2pChat(userId));
-  }
-
-  private String resolveTrueconfIdByEmail(String email) {
-    String normalizedEmail = normalizeEmail(email);
-    return repository.findTrueconfIdByEmail(normalizedEmail)
-        .orElseGet(() -> lookupAndCacheTrueconfId(normalizedEmail));
-  }
-
-  private String lookupAndCacheTrueconfId(String email) {
-    TrueConfUserDirectory.Entry entry = userDirectory.findByEmail(email)
-        .orElseThrow(() -> invalid(
-            "USER_EMAIL_NOT_FOUND",
-            "Active Directory user with email " + email + " was not found or has no TrueConf ID"));
-    String trueconfId = requireText(entry.trueconfId(), "trueconfId");
-    repository.upsertUserEmailCache(email, trueconfId, entry.displayName());
-    return trueconfId;
   }
 
   private String createAndCacheP2pChat(String userId) {
@@ -72,10 +55,6 @@ public class P2pChatResolver {
       throw invalid("INVALID_OUTBOX_RECIPIENT", fieldName + " is required");
     }
     return value;
-  }
-
-  private static String normalizeEmail(String value) {
-    return requireText(value, "recipientEmail").trim().toLowerCase(Locale.ROOT);
   }
 
   private static InvalidOutboxJobException invalid(String code, String message) {

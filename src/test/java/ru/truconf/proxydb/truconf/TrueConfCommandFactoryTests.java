@@ -64,6 +64,30 @@ class TrueConfCommandFactoryTests {
     assertJsonEquals("""
         {
           "type": 1,
+          "id": 12,
+          "method": "createGroupChat",
+          "payload": {
+            "title": "Support"
+          }
+        }
+        """, factory.createGroupChat(12, "Support"));
+
+    assertJsonEquals("""
+        {
+          "type": 1,
+          "id": 13,
+          "method": "addChatParticipant",
+          "payload": {
+            "chatId": "chat-1",
+            "userId": "user@example.com",
+            "displayHistory": true
+          }
+        }
+        """, factory.addChatParticipant(13, "chat-1", "user@example.com", true));
+
+    assertJsonEquals("""
+        {
+          "type": 1,
           "id": 3,
           "method": "sendMessage",
           "payload": {

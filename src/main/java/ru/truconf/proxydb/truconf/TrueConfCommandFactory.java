@@ -64,6 +64,23 @@ public class TrueConfCommandFactory {
     return request(id, "getChats", payload);
   }
 
+  public ObjectNode createGroupChat(long id, String title) {
+    ObjectNode payload = objectMapper.createObjectNode();
+    payload.put("title", requireText(title, "title"));
+    return request(id, "createGroupChat", payload);
+  }
+
+  public ObjectNode addChatParticipant(
+      long id,
+      String chatId,
+      String userId,
+      boolean displayHistory) {
+    ObjectNode payload = payloadWithChatId(chatId);
+    payload.put("userId", requireText(userId, "userId"));
+    payload.put("displayHistory", displayHistory);
+    return request(id, "addChatParticipant", payload);
+  }
+
   public ObjectNode sendMessage(
       long id,
       String chatId,

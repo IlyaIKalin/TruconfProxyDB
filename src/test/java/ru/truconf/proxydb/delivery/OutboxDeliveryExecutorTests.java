@@ -76,7 +76,10 @@ class OutboxDeliveryExecutorTests {
     userDirectory = new FakeUserDirectory();
     executor = new OutboxDeliveryExecutor(
         repository,
-        new P2pChatResolver(repository, trueConfClient, userDirectory),
+        new P2pChatResolver(
+            repository,
+            trueConfClient,
+            new TrueConfUserIdResolver(repository, userDirectory)),
         trueConfClient,
         new DbOnlyFileStorageService(),
         new RetryPolicy(new AppProperties.Retry(
@@ -480,6 +483,21 @@ class OutboxDeliveryExecutorTests {
     public TrueConfResponse getChats(int count, int page) {
       calls.add("getChats:" + count + ":" + page);
       return response(null, null, null, null);
+    }
+
+    @Override
+    public TrueConfResponse createGroupChat(String title) {
+      calls.add("createGroupChat:" + title);
+      return response("group-" + title, null, null, null);
+    }
+
+    @Override
+    public TrueConfResponse addChatParticipant(
+        String chatId,
+        String userId,
+        boolean displayHistory) {
+      calls.add("addChatParticipant:" + chatId + ":" + userId + ":" + displayHistory);
+      return response(chatId, null, null, null);
     }
 
     @Override
