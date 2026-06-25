@@ -65,17 +65,28 @@ class TrueConfCommandFactoryTests {
         {
           "type": 1,
           "id": 12,
-          "method": "createGroupChat",
+          "method": "getChatByID",
           "payload": {
-            "title": "Support"
+            "chatId": "chat-1"
           }
         }
-        """, factory.createGroupChat(12, "Support"));
+        """, factory.getChatById(12, "chat-1"));
 
     assertJsonEquals("""
         {
           "type": 1,
           "id": 13,
+          "method": "createGroupChat",
+          "payload": {
+            "title": "Support"
+          }
+        }
+        """, factory.createGroupChat(13, "Support"));
+
+    assertJsonEquals("""
+        {
+          "type": 1,
+          "id": 14,
           "method": "addChatParticipant",
           "payload": {
             "chatId": "chat-1",
@@ -83,7 +94,7 @@ class TrueConfCommandFactoryTests {
             "displayHistory": true
           }
         }
-        """, factory.addChatParticipant(13, "chat-1", "user@example.com", true));
+        """, factory.addChatParticipant(14, "chat-1", "user@example.com", true));
 
     assertJsonEquals("""
         {

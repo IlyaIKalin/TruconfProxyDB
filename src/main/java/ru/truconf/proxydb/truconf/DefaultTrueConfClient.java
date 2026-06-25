@@ -36,6 +36,11 @@ public class DefaultTrueConfClient implements TrueConfClient {
   }
 
   @Override
+  public TrueConfResponse getChatById(String chatId) {
+    return request(id -> commandFactory.getChatById(id, chatId));
+  }
+
+  @Override
   public TrueConfResponse createGroupChat(String title) {
     return request(id -> commandFactory.createGroupChat(id, title));
   }

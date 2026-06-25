@@ -4,6 +4,7 @@ import tools.jackson.databind.JsonNode;
 
 public record TrueConfResponse(
     String chatId,
+    String chatTitle,
     String messageId,
     String fileId,
     Long timestamp,

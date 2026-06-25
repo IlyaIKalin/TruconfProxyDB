@@ -69,6 +69,7 @@ public class TrueConfResponseMapper {
     JsonNode payload = payload(response);
     return new TrueConfResponse(
         firstText(child(payload, "chatId"), child(response, "chatId")),
+        firstText(child(payload, "title"), child(response, "title")),
         firstText(child(payload, "messageId"), child(response, "messageId")),
         firstText(child(payload, "fileId"), child(response, "fileId")),
         firstLong(child(payload, "timestamp"), child(response, "timestamp")),

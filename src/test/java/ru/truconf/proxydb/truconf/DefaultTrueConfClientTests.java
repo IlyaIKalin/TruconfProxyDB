@@ -74,6 +74,27 @@ class DefaultTrueConfClientTests {
   }
 
   @Test
+  void getChatByIdUsesWebSocketTransportAndMapsTitle() {
+    RecordingTransport transport = new RecordingTransport(objectMapper);
+    RecordingFileUploader uploader = new RecordingFileUploader(objectMapper);
+    RecordingRateLimiter rateLimiter = new RecordingRateLimiter();
+    DefaultTrueConfClient client = new DefaultTrueConfClient(
+        transport,
+        commandFactory,
+        uploader,
+        rateLimiter);
+
+    TrueConfResponse response = client.getChatById("chat-1");
+
+    assertThat(response.chatId()).isEqualTo("chat-1");
+    assertThat(response.chatTitle()).isEqualTo("Support");
+    assertThat(transport.methods()).containsExactly("getChatByID");
+    assertThat(rateLimiter.acquireCount()).isEqualTo(1);
+    JsonNode command = transport.commands().getFirst();
+    assertThat(command.get("payload").get("chatId").asText()).isEqualTo("chat-1");
+  }
+
+  @Test
   void groupChatMethodsUseWebSocketTransportAndRateLimiter() {
     RecordingTransport transport = new RecordingTransport(objectMapper);
     RecordingFileUploader uploader = new RecordingFileUploader(objectMapper);
@@ -147,6 +168,7 @@ class DefaultTrueConfClientTests {
             null,
             null,
             null,
+            null,
             "upload-task-1",
             null,
             null,
@@ -155,6 +177,7 @@ class DefaultTrueConfClientTests {
       if ("sendFile".equals(method)) {
         return new TrueConfResponse(
             "chat-1",
+            null,
             "message-1",
             "file-1",
             1735134222098L,
@@ -174,7 +197,16 @@ class DefaultTrueConfClientTests {
         ObjectNode root = objectMapper.createObjectNode();
         root.put("type", 2);
         root.set("payload", payload);
-        return new TrueConfResponse(null, null, null, null, null, null, null, root);
+        return new TrueConfResponse(null, null, null, null, null, null, null, null, root);
+      }
+      if ("getChatByID".equals(method)) {
+        ObjectNode payload = objectMapper.createObjectNode();
+        payload.put("chatId", "chat-1");
+        payload.put("title", "Support");
+        ObjectNode root = objectMapper.createObjectNode();
+        root.put("type", 2);
+        root.set("payload", payload);
+        return new TrueConfResponse("chat-1", "Support", null, null, null, null, null, null, root);
       }
       if ("createGroupChat".equals(method)) {
         return new TrueConfResponse(
@@ -185,10 +217,12 @@ class DefaultTrueConfClientTests {
             null,
             null,
             null,
+            null,
             raw("chatId", "group-chat-1"));
       }
       if ("addChatParticipant".equals(method)) {
         return new TrueConfResponse(
+            null,
             null,
             null,
             null,
@@ -239,6 +273,7 @@ class DefaultTrueConfClientTests {
       this.uploadedFileText = read(file);
       this.uploadedPreviewText = read(preview);
       return new TrueConfResponse(
+          null,
           null,
           null,
           null,

@@ -8,6 +8,8 @@ public interface TrueConfClient {
 
   TrueConfResponse getChats(int count, int page);
 
+  TrueConfResponse getChatById(String chatId);
+
   TrueConfResponse createGroupChat(String title);
 
   TrueConfResponse addChatParticipant(String chatId, String userId, boolean displayHistory);

@@ -486,6 +486,12 @@ class OutboxDeliveryExecutorTests {
     }
 
     @Override
+    public TrueConfResponse getChatById(String chatId) {
+      calls.add("getChatById:" + chatId);
+      return response(chatId, null, null, null);
+    }
+
+    @Override
     public TrueConfResponse createGroupChat(String title) {
       calls.add("createGroupChat:" + title);
       return response("group-" + title, null, null, null);
@@ -566,7 +572,7 @@ class OutboxDeliveryExecutorTests {
 
     private TrueConfResponse response(String chatId, String messageId, String fileId, Long timestamp) {
       JsonNode raw = rawResponse(chatId, messageId, fileId, timestamp);
-      return new TrueConfResponse(chatId, messageId, fileId, timestamp, null, null, null, raw);
+      return new TrueConfResponse(chatId, null, messageId, fileId, timestamp, null, null, null, raw);
     }
 
     private JsonNode rawResponse(String chatId, String messageId, String fileId, Long timestamp) {

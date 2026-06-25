@@ -36,6 +36,15 @@ public class GroupChatService {
     return new CreateGroupChatResult(chatId, participants, response.rawResponse());
   }
 
+  public ChatInfoResult getChatInfo(String chatId) {
+    String normalizedChatId = requireText(chatId, "chatId");
+    TrueConfResponse response = trueConfClient.getChatById(normalizedChatId);
+    return new ChatInfoResult(
+        requiredResponseField(response.chatId(), "chatId"),
+        requiredResponseField(response.chatTitle(), "title"),
+        response.rawResponse());
+  }
+
   public AddParticipantsResult addParticipants(AddParticipantsCommand command) {
     Objects.requireNonNull(command, "command must not be null");
     String chatId = requireText(command.chatId(), "chatId");
@@ -177,6 +186,12 @@ public class GroupChatService {
   public record AddParticipantsResult(
       String chatId,
       List<ParticipantResult> participants) {
+  }
+
+  public record ChatInfoResult(
+      String chatId,
+      String title,
+      JsonNode rawResponse) {
   }
 
   public record ParticipantResult(

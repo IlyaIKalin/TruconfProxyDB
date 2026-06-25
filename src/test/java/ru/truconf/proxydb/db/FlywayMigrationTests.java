@@ -58,6 +58,7 @@ class FlywayMigrationTests {
             'truconf_outbox_file',
             'truconf_p2p_chat_cache',
             'truconf_user_email_cache',
+            'truconf_managed_chat',
             'flyway_schema_history'
           )
         """,
@@ -67,12 +68,12 @@ class FlywayMigrationTests {
         """
         select count(*)
         from flyway_schema_history
-        where success = true and version in ('1', '2')
+        where success = true and version in ('1', '2', '3')
         """,
         Integer.class);
 
-    assertThat(tableCount).isEqualTo(5);
-    assertThat(appliedMigrations).isEqualTo(2);
+    assertThat(tableCount).isEqualTo(6);
+    assertThat(appliedMigrations).isEqualTo(3);
   }
 
   @Test
@@ -232,6 +233,57 @@ class FlywayMigrationTests {
         Integer.class);
 
     assertThat(fileCount).isEqualTo(2);
+  }
+
+  @Test
+  void managedChatRegistryConstraintsAndUniquenessWork() {
+    jdbc.update("""
+        insert into truconf_managed_chat (
+          owner_system,
+          owner_kind,
+          owner_key,
+          chat_id,
+          title
+        ) values (
+          'SPRINGFLOW',
+          'PROJECT',
+          'demo',
+          'chat-1',
+          'SpringFlow: Demo'
+        )
+        """);
+
+    assertDataAccessFailure("""
+        insert into truconf_managed_chat (
+          owner_system,
+          owner_kind,
+          owner_key,
+          chat_id,
+          title
+        ) values (
+          'SPRINGFLOW',
+          'PROJECT',
+          'demo',
+          'chat-2',
+          'Duplicate'
+        )
+        """);
+
+    assertDataAccessFailure("""
+        insert into truconf_managed_chat (
+          owner_system,
+          owner_kind,
+          owner_key,
+          chat_id,
+          title
+        ) values (
+          '',
+          'PROJECT',
+          'bad',
+          'chat-bad',
+          'Bad'
+        )
+        """);
   }
 
   private Long insertMinimalOutbox(String externalId) {

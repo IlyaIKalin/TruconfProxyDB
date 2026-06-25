@@ -94,9 +94,24 @@ class GroupChatServiceTests {
     }
 
     @Override
+    public TrueConfResponse getChatById(String chatId) {
+      calls.add("getChatById:" + chatId);
+      return new TrueConfResponse(
+          chatId,
+          "Fetched " + chatId,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          raw("chatId", chatId, "title", "Fetched " + chatId));
+    }
+
+    @Override
     public TrueConfResponse createGroupChat(String title) {
       calls.add("createGroupChat:" + title);
-      return new TrueConfResponse("group-chat-1", null, null, null, null, null, null, raw("chatId", "group-chat-1"));
+      return new TrueConfResponse("group-chat-1", null, null, null, null, null, null, null, raw("chatId", "group-chat-1"));
     }
 
     @Override
@@ -105,7 +120,7 @@ class GroupChatServiceTests {
       if (userId.equals(alreadyParticipantUserId)) {
         throw new TrueConfException("309", "User is already a chat participant", false, raw("errorCode", "309"));
       }
-      return new TrueConfResponse(chatId, null, null, null, null, null, userId, raw("userId", userId));
+      return new TrueConfResponse(chatId, null, null, null, null, null, null, userId, raw("userId", userId));
     }
 
     @Override
@@ -164,6 +179,16 @@ class GroupChatServiceTests {
     private JsonNode raw(String fieldName, String value) {
       var payload = objectMapper.createObjectNode();
       payload.put(fieldName, value);
+      var root = objectMapper.createObjectNode();
+      root.put("type", 2);
+      root.set("payload", payload);
+      return root;
+    }
+
+    private JsonNode raw(String firstField, String firstValue, String secondField, String secondValue) {
+      var payload = objectMapper.createObjectNode();
+      payload.put(firstField, firstValue);
+      payload.put(secondField, secondValue);
       var root = objectMapper.createObjectNode();
       root.put("type", 2);
       root.set("payload", payload);
