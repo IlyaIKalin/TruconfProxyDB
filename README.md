@@ -145,6 +145,12 @@ TrueConf, OAuth-токены и пароли к базе данных.
 `TRUCONF_DISPATCHER_LOCK_TIMEOUT`, иначе worker может работать дольше, чем
 действует его DB lock.
 
+Dispatcher сохраняет последовательность обработки внутри одного входного
+назначения: `CHAT:chatId`, `USER:userId` или `USER_EMAIL:email`. Разные
+назначения обрабатываются параллельно. Сообщение, ушедшее в `RETRY_WAIT`, не
+блокирует новые сообщения в то же назначение; его повторная попытка может быть
+доставлена позже.
+
 ### Nginx под `/tconf`
 
 Если приложение запущено с `SERVER_SERVLET_CONTEXT_PATH=/tconf`, upstream
@@ -427,6 +433,9 @@ limit 10;
   во время обработки, поэтому некорректные задания могут перейти в `FAILED`.
 - Direct `SEND_FILE` с `storage_kind='DISK'` требует существующего файла внутри
   `TRUCONF_FILE_STORAGE_DIR`.
+- Порядок личных сообщений сохраняется по входному получателю. `USER` и
+  `USER_EMAIL`, даже если они указывают на одного человека, являются разными
+  очередями доставки.
 - В v1 нет входящего workflow для сообщений TrueConf, UI/admin panel и
   distributed leader election.
 - Retry backoff — детерминированный exponential backoff без jitter.

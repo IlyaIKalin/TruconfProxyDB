@@ -68,12 +68,12 @@ class FlywayMigrationTests {
         """
         select count(*)
         from flyway_schema_history
-        where success = true and version in ('1', '2', '3')
+        where success = true and version in ('1', '2', '3', '4')
         """,
         Integer.class);
 
     assertThat(tableCount).isEqualTo(6);
-    assertThat(appliedMigrations).isEqualTo(3);
+    assertThat(appliedMigrations).isEqualTo(4);
   }
 
   @Test
@@ -212,6 +212,61 @@ class FlywayMigrationTests {
   }
 
   @Test
+  void deliveryKeyIsGeneratedForAllRecipientKinds() {
+    jdbc.update("""
+        insert into truconf_outbox (
+          external_id,
+          operation,
+          recipient_kind,
+          chat_id,
+          payload_json
+        ) values (
+          'delivery-chat',
+          'SEND_MESSAGE',
+          'CHAT',
+          'chat-123',
+          '{"text":"Hello"}'::jsonb
+        )
+        """);
+
+    jdbc.update("""
+        insert into truconf_outbox (
+          external_id,
+          operation,
+          recipient_kind,
+          user_id,
+          payload_json
+        ) values (
+          'delivery-user',
+          'SEND_MESSAGE',
+          'USER',
+          'user@example.com',
+          '{"text":"Hello"}'::jsonb
+        )
+        """);
+
+    jdbc.update("""
+        insert into truconf_outbox (
+          external_id,
+          operation,
+          recipient_kind,
+          recipient_email,
+          payload_json
+        ) values (
+          'delivery-email',
+          'SEND_MESSAGE',
+          'USER_EMAIL',
+          'User@Example.COM',
+          '{"text":"Hello"}'::jsonb
+        )
+        """);
+
+    assertThat(deliveryKey("delivery-chat")).isEqualTo("CHAT:chat-123");
+    assertThat(deliveryKey("delivery-user")).isEqualTo("USER:user@example.com");
+    assertThat(deliveryKey("delivery-email")).isEqualTo("USER_EMAIL:user@example.com");
+  }
+
+  @Test
   void validFileInsertPassesForDiskAndDbStorage() {
     Long diskOutboxId = insertMinimalOutbox("disk-file");
     Long dbOutboxId = insertMinimalOutbox("db-file");
@@ -297,6 +352,13 @@ class FlywayMigrationTests {
         ) values (?, 'SEND_MESSAGE', 'USER', 'user@example.com', '{}'::jsonb)
         returning id
         """, Long.class, externalId);
+  }
+
+  private String deliveryKey(String externalId) {
+    return jdbc.queryForObject(
+        "select delivery_key from truconf_outbox where external_id = ?",
+        String.class,
+        externalId);
   }
 
   private void assertDataAccessFailure(String sql) {

@@ -144,6 +144,98 @@ class OutboxRepositoryTests {
   }
 
   @Test
+  void claimBatchClaimsOnlyOneReadyJobPerDeliveryKey() {
+    OutboxJob firstChatMessage = createReadyChatJob("same-chat-1", "chat-shared");
+    OutboxJob secondChatMessage = createReadyChatJob("same-chat-2", "chat-shared");
+    OutboxJob otherChatMessage = createReadyChatJob("other-chat-1", "chat-other");
+
+    List<OutboxJob> claimed = repository.claimBatch("worker-a", Duration.ofMinutes(2), 10);
+
+    assertThat(claimed)
+        .extracting(OutboxJob::id)
+        .containsExactly(firstChatMessage.id(), otherChatMessage.id());
+    assertThat(repository.findById(secondChatMessage.id()))
+        .isPresent()
+        .get()
+        .extracting(OutboxJob::status)
+        .isEqualTo(OutboxStatus.NEW);
+  }
+
+  @Test
+  void claimBatchSkipsDeliveryKeyThatIsAlreadyProcessing() {
+    OutboxJob first = createReadyChatJob("processing-chat-1", "chat-processing");
+    OutboxJob second = createReadyChatJob("processing-chat-2", "chat-processing");
+    OutboxJob other = createReadyChatJob("processing-other-1", "chat-other-processing");
+
+    List<OutboxJob> firstClaim = repository.claimBatch("worker-a", Duration.ofMinutes(2), 1);
+    assertThat(firstClaim).extracting(OutboxJob::id).containsExactly(first.id());
+
+    List<OutboxJob> secondClaim = repository.claimBatch("worker-b", Duration.ofMinutes(2), 10);
+
+    assertThat(secondClaim).extracting(OutboxJob::id).containsExactly(other.id());
+    assertThat(repository.findById(second.id()))
+        .isPresent()
+        .get()
+        .extracting(OutboxJob::status)
+        .isEqualTo(OutboxStatus.NEW);
+  }
+
+  @Test
+  void claimBatchAllowsNextJobForDeliveryKeyAfterSentTransition() {
+    OutboxJob first = createReadyChatJob("sent-chat-1", "chat-after-sent");
+    OutboxJob second = createReadyChatJob("sent-chat-2", "chat-after-sent");
+
+    OutboxJob claim = repository.claimBatch("worker-a", Duration.ofMinutes(2), 1)
+        .getFirst();
+    assertThat(claim.id()).isEqualTo(first.id());
+    repository.markSent(
+        claim.id(),
+        "worker-a",
+        new SentOutboxResult("chat-after-sent", "message-1", null, null, "{\"ok\":true}"));
+
+    List<OutboxJob> claimed = repository.claimBatch("worker-b", Duration.ofMinutes(2), 10);
+
+    assertThat(claimed).extracting(OutboxJob::id).containsExactly(second.id());
+  }
+
+  @Test
+  void claimBatchAllowsNextNewJobForDeliveryKeyAfterRetryTransition() {
+    OutboxJob first = createReadyChatJob("retry-chat-1", "chat-after-retry");
+    OutboxJob second = createReadyChatJob("retry-chat-2", "chat-after-retry");
+
+    OutboxJob claim = repository.claimBatch("worker-a", Duration.ofMinutes(2), 1)
+        .getFirst();
+    assertThat(claim.id()).isEqualTo(first.id());
+    repository.markRetry(
+        claim.id(),
+        "worker-a",
+        Duration.ofMinutes(5),
+        new OutboxError("TEMPORARY", "Temporary failure", true, null));
+
+    List<OutboxJob> claimed = repository.claimBatch("worker-b", Duration.ofMinutes(2), 10);
+
+    assertThat(claimed).extracting(OutboxJob::id).containsExactly(second.id());
+  }
+
+  @Test
+  void claimBatchPrefersNewJobOverReadyRetryWaitForSameDeliveryKey() {
+    OutboxJob retryCandidate = createReadyChatJob("retry-priority-1", "chat-retry-priority");
+    OutboxJob claimedForRetry = repository.claimBatch("worker-a", Duration.ofMinutes(2), 1)
+        .getFirst();
+    assertThat(claimedForRetry.id()).isEqualTo(retryCandidate.id());
+    repository.markRetry(
+        claimedForRetry.id(),
+        "worker-a",
+        Duration.ZERO,
+        new OutboxError("TEMPORARY", "Temporary failure", true, null));
+    OutboxJob newCandidate = createReadyChatJob("retry-priority-2", "chat-retry-priority");
+
+    List<OutboxJob> claimed = repository.claimBatch("worker-b", Duration.ofMinutes(2), 1);
+
+    assertThat(claimed).extracting(OutboxJob::id).containsExactly(newCandidate.id());
+  }
+
+  @Test
   void oneJobIsNotClaimedByTwoWorkersInConcurrentTransactions() {
     OutboxJob job = createReadyJob("concurrent-1");
 
@@ -309,6 +401,20 @@ class OutboxRepositoryTests {
         RecipientKind.USER,
         null,
         externalId + "@example.com",
+        null,
+        null,
+        "{\"text\":\"" + externalId + "\"}",
+        10,
+        OffsetDateTime.now(ZoneOffset.UTC).minusSeconds(1)));
+  }
+
+  private OutboxJob createReadyChatJob(String externalId, String chatId) {
+    return repository.create(new CreateOutboxJobCommand(
+        externalId,
+        OutboxOperation.SEND_MESSAGE,
+        RecipientKind.CHAT,
+        chatId,
+        null,
         null,
         null,
         "{\"text\":\"" + externalId + "\"}",

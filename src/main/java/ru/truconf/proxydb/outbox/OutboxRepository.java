@@ -220,23 +220,51 @@ public class OutboxRepository {
     requirePositive(batchSize, "batchSize");
 
     return jdbc.query("""
-        with candidate as (
-          select id
-          from truconf_outbox
-          where status in ('NEW', 'RETRY_WAIT')
-            and next_attempt_at <= now()
-          order by next_attempt_at, id
-          for update skip locked
+        with ranked as (
+          select
+            o.id,
+            o.delivery_key,
+            o.next_attempt_at,
+            row_number() over (
+              partition by o.delivery_key
+              order by
+                case when o.status = 'NEW' then 0 else 1 end,
+                o.next_attempt_at,
+                o.id
+            ) as delivery_rank
+          from truconf_outbox o
+          where o.status in ('NEW', 'RETRY_WAIT')
+            and o.next_attempt_at <= now()
+            and not exists (
+              select 1
+              from truconf_outbox processing
+              where processing.delivery_key = o.delivery_key
+                and processing.status = 'PROCESSING'
+            )
+        ),
+        candidate as (
+          select ranked.id
+          from ranked
+          where ranked.delivery_rank = 1
+            and pg_try_advisory_xact_lock(hashtextextended(ranked.delivery_key, 0))
+          order by ranked.next_attempt_at, ranked.id
           limit ?
+        ),
+        claimed as (
+          update truconf_outbox o
+          set status = 'PROCESSING',
+              locked_by = ?,
+              locked_until = now() + (?::double precision * interval '1 millisecond'),
+              attempt_count = attempt_count + 1
+          from candidate
+          where o.id = candidate.id
+            and o.status in ('NEW', 'RETRY_WAIT')
+            and o.next_attempt_at <= now()
+          returning o.*
         )
-        update truconf_outbox o
-        set status = 'PROCESSING',
-            locked_by = ?,
-            locked_until = now() + (?::double precision * interval '1 millisecond'),
-            attempt_count = attempt_count + 1
-        from candidate
-        where o.id = candidate.id
-        returning o.*
+        select *
+        from claimed
+        order by next_attempt_at, id
         """,
         OUTBOX_JOB_ROW_MAPPER,
         batchSize,

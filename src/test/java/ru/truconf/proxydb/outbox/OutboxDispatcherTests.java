@@ -103,6 +103,30 @@ class OutboxDispatcherTests {
   }
 
   @Test
+  void pollingDoesNotDispatchTwoJobsForSameDeliveryKeyAtTheSameTime() {
+    OutboxJob first = createReadyChatJob("dispatcher-same-chat-1", "chat-dispatcher-shared");
+    OutboxJob second = createReadyChatJob("dispatcher-same-chat-2", "chat-dispatcher-shared");
+    RecordingExecutor executor = new RecordingExecutor(1);
+
+    dispatcher = newDispatcher(
+        executor,
+        Duration.ofMillis(100),
+        Duration.ofSeconds(3),
+        10,
+        2);
+    dispatcher.start();
+
+    executor.awaitJobs(Duration.ofSeconds(5));
+
+    assertThat(executor.jobIds()).containsExactly(first.id());
+    assertThat(repository.findById(second.id()))
+        .isPresent()
+        .get()
+        .extracting(OutboxJob::status)
+        .isEqualTo(OutboxStatus.NEW);
+  }
+
+  @Test
   void staleLockRecoveryReturnsExpiredProcessingJobToNewAndDispatchesItAgain() {
     OutboxJob created = createReadyJob("dispatcher-stale-1");
     OutboxJob claimed = repository.claimBatch("stale-worker", Duration.ofMillis(100), 1)
@@ -220,6 +244,20 @@ class OutboxDispatcherTests {
         RecipientKind.USER,
         null,
         externalId + "@example.com",
+        null,
+        null,
+        "{\"text\":\"" + externalId + "\"}",
+        10,
+        OffsetDateTime.now(ZoneOffset.UTC).minusSeconds(1)));
+  }
+
+  private OutboxJob createReadyChatJob(String externalId, String chatId) {
+    return repository.create(new CreateOutboxJobCommand(
+        externalId,
+        OutboxOperation.SEND_MESSAGE,
+        RecipientKind.CHAT,
+        chatId,
+        null,
         null,
         null,
         "{\"text\":\"" + externalId + "\"}",
