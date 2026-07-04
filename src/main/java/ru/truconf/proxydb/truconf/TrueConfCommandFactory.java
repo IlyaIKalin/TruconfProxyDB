@@ -85,6 +85,31 @@ public class TrueConfCommandFactory {
     return request(id, "addChatParticipant", payload);
   }
 
+  public ObjectNode getChatParticipants(long id, String chatId, int pageSize, int pageNumber) {
+    if (pageSize < 1) {
+      throw new IllegalArgumentException("pageSize must be positive");
+    }
+    if (pageNumber < 1) {
+      throw new IllegalArgumentException("pageNumber must be positive");
+    }
+
+    ObjectNode payload = payloadWithChatId(chatId);
+    payload.put("pageSize", pageSize);
+    payload.put("pageNumber", pageNumber);
+    return request(id, "getChatParticipants", payload);
+  }
+
+  public ObjectNode removeChatParticipant(
+      long id,
+      String chatId,
+      String userId,
+      boolean clearHistory) {
+    ObjectNode payload = payloadWithChatId(chatId);
+    payload.put("userId", requireText(userId, "userId"));
+    payload.put("clearHistory", clearHistory);
+    return request(id, "removeChatParticipant", payload);
+  }
+
   public ObjectNode sendMessage(
       long id,
       String chatId,

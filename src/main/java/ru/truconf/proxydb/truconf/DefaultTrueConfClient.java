@@ -54,6 +54,19 @@ public class DefaultTrueConfClient implements TrueConfClient {
   }
 
   @Override
+  public TrueConfResponse getChatParticipants(String chatId, int pageSize, int pageNumber) {
+    return request(id -> commandFactory.getChatParticipants(id, chatId, pageSize, pageNumber));
+  }
+
+  @Override
+  public TrueConfResponse removeChatParticipant(
+      String chatId,
+      String userId,
+      boolean clearHistory) {
+    return request(id -> commandFactory.removeChatParticipant(id, chatId, userId, clearHistory));
+  }
+
+  @Override
   public TrueConfResponse sendMessage(
       String chatId,
       String text,

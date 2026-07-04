@@ -2,6 +2,7 @@ package ru.truconf.proxydb.delivery;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import ru.truconf.proxydb.truconf.TrueConfClient;
 import ru.truconf.proxydb.truconf.TrueConfException;
@@ -12,7 +13,11 @@ import tools.jackson.databind.JsonNode;
 public class GroupChatService {
 
   private static final boolean DEFAULT_DISPLAY_HISTORY = true;
+  private static final boolean DEFAULT_CLEAR_HISTORY_ON_REMOVE = false;
+  private static final int PARTICIPANT_PAGE_SIZE = 100;
+  private static final int PARTICIPANT_PAGE_HARD_CAP = 100;
   private static final String ALREADY_PARTICIPANT_CODE = "309";
+  private static final String INVALID_PARTICIPANT_CODE = "INVALID_PARTICIPANT";
 
   private final TrueConfClient trueConfClient;
   private final TrueConfUserIdResolver userIdResolver;
@@ -55,6 +60,31 @@ public class GroupChatService {
     return new AddParticipantsResult(
         chatId,
         addParticipants(chatId, participants, displayHistory(command.displayHistory()), true));
+  }
+
+  public SyncParticipantsResult syncParticipants(SyncParticipantsCommand command) {
+    Objects.requireNonNull(command, "command must not be null");
+    String chatId = requireText(command.chatId(), "chatId");
+    List<ParticipantCommand> participants = emptyIfNull(command.participants());
+
+    List<ParticipantResult> results = new java.util.ArrayList<>(addParticipants(
+        chatId,
+        participants,
+        displayHistory(command.displayHistory()),
+        false));
+
+    if (Boolean.TRUE.equals(command.removeStaleParticipants())) {
+      Set<String> desiredUserIds = desiredUserIds(results);
+      List<String> staleUserIds = currentParticipantUserIds(chatId).stream()
+          .filter(userId -> !desiredUserIds.contains(userId))
+          .sorted()
+          .toList();
+      for (int index = 0; index < staleUserIds.size(); index++) {
+        results.add(removeStaleParticipant(chatId, staleUserIds.get(index), participants.size() + index));
+      }
+    }
+
+    return new SyncParticipantsResult(chatId, results);
   }
 
   private List<ParticipantResult> addParticipants(
@@ -110,6 +140,69 @@ public class GroupChatService {
           : ParticipantStatus.FAILED;
       return new ParticipantResult(index, status, email, resolvedUserId, ex.code(), ex.getMessage());
     }
+  }
+
+  private List<String> currentParticipantUserIds(String chatId) {
+    List<String> userIds = new java.util.ArrayList<>();
+    for (int pageNumber = 1; pageNumber <= PARTICIPANT_PAGE_HARD_CAP; pageNumber++) {
+      TrueConfResponse response = trueConfClient.getChatParticipants(
+          chatId,
+          PARTICIPANT_PAGE_SIZE,
+          pageNumber);
+      List<String> page = participantUserIds(response.rawResponse());
+      userIds.addAll(page);
+      if (page.size() < PARTICIPANT_PAGE_SIZE) {
+        break;
+      }
+    }
+    return userIds;
+  }
+
+  private List<String> participantUserIds(JsonNode rawResponse) {
+    JsonNode participants = child(payload(rawResponse), "participants");
+    if (participants == null || !participants.isArray()) {
+      return List.of();
+    }
+    List<String> userIds = new java.util.ArrayList<>();
+    for (JsonNode participant : participants) {
+      String userId = normalizeBlank(textValue(child(participant, "userId")));
+      if (userId != null) {
+        userIds.add(userId);
+      }
+    }
+    return userIds;
+  }
+
+  private ParticipantResult removeStaleParticipant(String chatId, String userId, int index) {
+    try {
+      trueConfClient.removeChatParticipant(
+          chatId,
+          userId,
+          DEFAULT_CLEAR_HISTORY_ON_REMOVE);
+      return new ParticipantResult(
+          index,
+          ParticipantStatus.REMOVED,
+          null,
+          userId,
+          null,
+          null);
+    } catch (TrueConfException ex) {
+      return new ParticipantResult(
+          index,
+          ParticipantStatus.FAILED,
+          null,
+          userId,
+          ex.code(),
+          ex.getMessage());
+    }
+  }
+
+  private static Set<String> desiredUserIds(List<ParticipantResult> results) {
+    return results.stream()
+        .filter(result -> result.userId() != null)
+        .filter(result -> !INVALID_PARTICIPANT_CODE.equals(result.code()))
+        .map(ParticipantResult::userId)
+        .collect(java.util.stream.Collectors.toUnmodifiableSet());
   }
 
   private static ParticipantResult failed(
@@ -174,6 +267,13 @@ public class GroupChatService {
       Boolean displayHistory) {
   }
 
+  public record SyncParticipantsCommand(
+      String chatId,
+      List<ParticipantCommand> participants,
+      Boolean displayHistory,
+      Boolean removeStaleParticipants) {
+  }
+
   public record ParticipantCommand(String email, String userId) {
   }
 
@@ -184,6 +284,11 @@ public class GroupChatService {
   }
 
   public record AddParticipantsResult(
+      String chatId,
+      List<ParticipantResult> participants) {
+  }
+
+  public record SyncParticipantsResult(
       String chatId,
       List<ParticipantResult> participants) {
   }
@@ -206,6 +311,30 @@ public class GroupChatService {
   public enum ParticipantStatus {
     ADDED,
     IGNORED,
+    REMOVED,
     FAILED
+  }
+
+  private static JsonNode payload(JsonNode response) {
+    JsonNode payload = child(response, "payload");
+    return payload == null || !payload.isObject() ? response : payload;
+  }
+
+  private static JsonNode child(JsonNode node, String fieldName) {
+    if (node == null || !node.isObject()) {
+      return null;
+    }
+    JsonNode child = node.get(fieldName);
+    return child == null || child.isNull() || child.isMissingNode() ? null : child;
+  }
+
+  private static String textValue(JsonNode node) {
+    if (node == null) {
+      return null;
+    }
+    if (node.isTextual() || node.isNumber() || node.isBoolean()) {
+      return node.asText();
+    }
+    return null;
   }
 }

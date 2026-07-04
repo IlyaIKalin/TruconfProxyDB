@@ -3,10 +3,8 @@ package ru.truconf.proxydb.managedchat;
 import java.util.Objects;
 import java.util.Optional;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Repository;
 import ru.truconf.proxydb.domain.TruconfManagedChat;
 
-@Repository
 public class ManagedChatRepository {
 
   private static final ManagedChatRowMapper ROW_MAPPER = new ManagedChatRowMapper();

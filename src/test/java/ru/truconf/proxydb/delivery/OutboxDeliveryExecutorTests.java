@@ -507,6 +507,21 @@ class OutboxDeliveryExecutorTests {
     }
 
     @Override
+    public TrueConfResponse getChatParticipants(String chatId, int pageSize, int pageNumber) {
+      calls.add("getChatParticipants:" + chatId + ":" + pageSize + ":" + pageNumber);
+      return response(chatId, null, null, null);
+    }
+
+    @Override
+    public TrueConfResponse removeChatParticipant(
+        String chatId,
+        String userId,
+        boolean clearHistory) {
+      calls.add("removeChatParticipant:" + chatId + ":" + userId + ":" + clearHistory);
+      return response(chatId, null, null, null);
+    }
+
+    @Override
     public TrueConfResponse sendMessage(
         String chatId,
         String text,

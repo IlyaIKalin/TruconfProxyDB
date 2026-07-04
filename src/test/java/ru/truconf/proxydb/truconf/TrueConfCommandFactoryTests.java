@@ -99,6 +99,32 @@ class TrueConfCommandFactoryTests {
     assertJsonEquals("""
         {
           "type": 1,
+          "id": 15,
+          "method": "getChatParticipants",
+          "payload": {
+            "chatId": "chat-1",
+            "pageSize": 100,
+            "pageNumber": 1
+          }
+        }
+        """, factory.getChatParticipants(15, "chat-1", 100, 1));
+
+    assertJsonEquals("""
+        {
+          "type": 1,
+          "id": 16,
+          "method": "removeChatParticipant",
+          "payload": {
+            "chatId": "chat-1",
+            "userId": "user@example.com",
+            "clearHistory": false
+          }
+        }
+        """, factory.removeChatParticipant(16, "chat-1", "user@example.com", false));
+
+    assertJsonEquals("""
+        {
+          "type": 1,
           "id": 3,
           "method": "sendMessage",
           "payload": {

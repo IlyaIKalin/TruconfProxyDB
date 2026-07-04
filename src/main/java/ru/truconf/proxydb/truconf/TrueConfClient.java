@@ -14,6 +14,10 @@ public interface TrueConfClient {
 
   TrueConfResponse addChatParticipant(String chatId, String userId, boolean displayHistory);
 
+  TrueConfResponse getChatParticipants(String chatId, int pageSize, int pageNumber);
+
+  TrueConfResponse removeChatParticipant(String chatId, String userId, boolean clearHistory);
+
   TrueConfResponse sendMessage(
       String chatId,
       String text,

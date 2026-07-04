@@ -51,6 +51,11 @@ public class TrueConfDiagnosticController {
     return trueConfClient.getChats(count, page).rawResponse();
   }
 
+  @GetMapping("/chats/{chatId}")
+  public JsonNode getChat(@PathVariable @NotBlank String chatId) {
+    return trueConfClient.getChatById(chatId).rawResponse();
+  }
+
   @PostMapping("/p2p-chats")
   public JsonNode createP2PChat(@RequestBody @Valid CreateP2PChatRequest request) {
     return trueConfClient.createP2PChat(request.userId()).rawResponse();
@@ -77,6 +82,25 @@ public class TrueConfDiagnosticController {
         request == null ? null : request.displayHistory()));
   }
 
+  @GetMapping("/group-chats/{chatId}/participants")
+  public JsonNode getGroupChatParticipants(
+      @PathVariable @NotBlank String chatId,
+      @RequestParam(defaultValue = "100") @Min(1) @Max(100) int pageSize,
+      @RequestParam(defaultValue = "1") @Min(1) int pageNumber) {
+    return trueConfClient.getChatParticipants(chatId, pageSize, pageNumber).rawResponse();
+  }
+
+  @PostMapping("/group-chats/{chatId}/participants/remove")
+  public JsonNode removeGroupChatParticipant(
+      @PathVariable @NotBlank String chatId,
+      @RequestBody @Valid RemoveParticipantRequest request) {
+    return trueConfClient.removeChatParticipant(
+        chatId,
+        request.userId(),
+        Boolean.TRUE.equals(request.clearHistory()))
+        .rawResponse();
+  }
+
   @GetMapping("/users/search")
   public UserSearchResponse searchUsers(
       @RequestParam @NotBlank String query,
@@ -96,6 +120,11 @@ public class TrueConfDiagnosticController {
   public record AddParticipantsRequest(
       List<ParticipantRequest> participants,
       Boolean displayHistory) {
+  }
+
+  public record RemoveParticipantRequest(
+      @NotBlank String userId,
+      Boolean clearHistory) {
   }
 
   public record ParticipantRequest(String email, String userId) {

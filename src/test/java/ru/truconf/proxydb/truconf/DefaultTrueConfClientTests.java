@@ -107,14 +107,26 @@ class DefaultTrueConfClientTests {
 
     TrueConfResponse createResponse = client.createGroupChat("Support");
     TrueConfResponse addResponse = client.addChatParticipant("group-chat-1", "user@example.com", true);
+    TrueConfResponse listResponse = client.getChatParticipants("group-chat-1", 100, 1);
+    TrueConfResponse removeResponse = client.removeChatParticipant("group-chat-1", "user@example.com", false);
 
     assertThat(createResponse.chatId()).isEqualTo("group-chat-1");
     assertThat(addResponse.rawResponse().get("payload").get("userId").asText())
         .isEqualTo("user@example.com");
-    assertThat(transport.methods()).containsExactly("createGroupChat", "addChatParticipant");
-    assertThat(rateLimiter.acquireCount()).isEqualTo(2);
+    assertThat(listResponse.rawResponse().get("payload").get("participants").size()).isEqualTo(1);
+    assertThat(removeResponse.rawResponse().get("payload").isObject()).isTrue();
+    assertThat(transport.methods()).containsExactly(
+        "createGroupChat",
+        "addChatParticipant",
+        "getChatParticipants",
+        "removeChatParticipant");
+    assertThat(rateLimiter.acquireCount()).isEqualTo(4);
     assertThat(transport.commands().get(1).get("payload").get("displayHistory").asBoolean())
         .isTrue();
+    assertThat(transport.commands().get(2).get("payload").get("pageSize").asInt())
+        .isEqualTo(100);
+    assertThat(transport.commands().get(3).get("payload").get("clearHistory").asBoolean())
+        .isFalse();
   }
 
   private TrueConfUploadFile uploadFile(String fileName, String content) {
@@ -231,6 +243,26 @@ class DefaultTrueConfClientTests {
             null,
             "user@example.com",
             raw("userId", "user@example.com"));
+      }
+      if ("getChatParticipants".equals(method)) {
+        ObjectNode participant = objectMapper.createObjectNode();
+        participant.put("userId", "user@example.com");
+        participant.put("role", "user");
+        participant.put("type", 1);
+        var participants = objectMapper.createArrayNode();
+        participants.add(participant);
+        ObjectNode payload = objectMapper.createObjectNode();
+        payload.set("participants", participants);
+        ObjectNode root = objectMapper.createObjectNode();
+        root.put("type", 2);
+        root.set("payload", payload);
+        return new TrueConfResponse(null, null, null, null, null, null, null, null, root);
+      }
+      if ("removeChatParticipant".equals(method)) {
+        ObjectNode root = objectMapper.createObjectNode();
+        root.put("type", 2);
+        root.set("payload", objectMapper.createObjectNode());
+        return new TrueConfResponse(null, null, null, null, null, null, null, null, root);
       }
       throw new AssertionError("Unexpected method: " + method);
     }
